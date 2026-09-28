@@ -67,7 +67,7 @@ def layout(step):
     leading = size * 1.2
     y, lines = padding + size, []
     for index, group in enumerate(groups):
-        if index == 4:
+        if index == 3:
             y += 3 * leading
         for text in group:
             lines.append({'text': text, 'x': divider + padding, 'y': y,

@@ -76,6 +76,7 @@ ready(() => {
             step.specimen_positions[String(pageNumber)] = normalized;
         }
         step.page = Number(pageNumber);
+        step.preview_page = Number(pageNumber);
         step.x = normalized.x;
         step.y = normalized.y;
         step.width = normalized.width;
@@ -105,7 +106,8 @@ ready(() => {
         const current = Number(pageSelect.value);
         step.specimen_pages = [...new Set([...selectedPageNumbers(step), current].filter((value) => value > 0))].sort((a, b) => a - b);
         seedSelectedPagePosition(step, current);
-        step.page = step.specimen_pages[0] || current;
+        step.page = current || step.specimen_pages[0] || null;
+        step.preview_page = step.page;
     };
     steps.forEach((step) => {
         step.specimen_positions = step.specimen_positions && typeof step.specimen_positions === 'object' ? step.specimen_positions : {};
@@ -132,13 +134,16 @@ ready(() => {
     const page = () => pageByNumber(pageSelect.value);
     const renderPageOptions = () => {
         const step = active();
-        const current = Number(pageSelect.value);
+        const current = Number(step?.preview_page || step?.page || pageSelect.value);
         const available = step?.specimen_scope === 'selected_pages'
             ? selectedPageNumbers(step)
             : pages.map((item) => Number(item.page));
         pageSelect.replaceChildren();
         available.forEach((pageNumber) => pageSelect.add(new Option(pageNumber, pageNumber)));
-        if (available.length && !available.includes(current)) pageSelect.value = available[0];
+        if (available.length) {
+            pageSelect.value = available.includes(current) ? current : available[0];
+            if (step) step.preview_page = Number(pageSelect.value);
+        }
     };
     renderPageOptions();
     const issues = () => {
@@ -268,15 +273,15 @@ ready(() => {
                     return;
                 }
                 step.specimen_pages = [...new Set(checked)].sort((a, b) => a - b);
-                step.page = step.specimen_pages[0] || null;
+                const currentPage = Number(pageSelect.value);
+                const nextPage = checkbox.checked
+                    ? Number(checkbox.value)
+                    : step.specimen_pages.includes(currentPage) ? currentPage : step.specimen_pages[0];
+                step.page = nextPage || null;
+                step.preview_page = nextPage || null;
                 renderPageOptions();
-                const nextPage = checkbox.checked ? Number(checkbox.value) : step.specimen_pages[0];
-                if (nextPage && Number(pageSelect.value) !== nextPage) {
-                    pageSelect.value = nextPage;
-                    load();
-                } else {
-                    draw();
-                }
+                if (nextPage && Number(pageSelect.value) !== nextPage) pageSelect.value = nextPage;
+                if (nextPage) load(); else draw();
             });
             chip.append(checkbox, document.createTextNode(`Halaman ${item.page}`));
             pagePicker.append(chip);
@@ -317,7 +322,14 @@ ready(() => {
         controls();
         if (active().page && Number(pageSelect.value) !== Number(active().page)) { pageSelect.value = active().page; load(); } else draw();
     });
-    pageSelect.addEventListener('change', load);
+    pageSelect.addEventListener('change', () => {
+        const current = Number(pageSelect.value);
+        if (current) {
+            active().page = current;
+            active().preview_page = current;
+        }
+        load();
+    });
     scope.addEventListener('change', () => {
         active().specimen_scope = scope.value;
         if (scope.value === 'selected_pages') ensureCurrentSelected(active());
@@ -396,6 +408,5 @@ ready(() => {
     });
     fit();
     controls();
-    if (active().page) pageSelect.value = active().page;
     load();
 });

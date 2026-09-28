@@ -57,7 +57,8 @@ function editor({ error = null, x = 500, y = 720, extraStep = false, pageWidth =
     const fire = (name, type) => field(name).dispatchEvent({ type });
     const select = format => { field('format').value = format; fire('format', 'change'); };
     const position = key => Number(field('position-inputs').children.find(input => input.name === `positions[0][${key}]`).value);
-    return { field, fire, select, position, statuses };
+    const submitted = key => field('position-inputs').children.find(input => input.name === `positions[0][${key}]`)?.value;
+    return { field, fire, select, position, submitted, statuses };
 }
 
 test('switching to a valid frame keeps it within the page and allows confirmation', () => {
@@ -134,4 +135,23 @@ test('selected-pages scope accepts multiple page checkboxes and submits them', (
         .map((input) => Number(input.value));
     assert.deepEqual(selected, [1, 3]);
     assert.match(ui.statuses[1].textContent, /Posisi lengkap/);
+});
+
+test('selected-pages preview remembers the page being positioned per signer', () => {
+    const ui = editor({ extraStep: true });
+    ui.fire('page-image', 'load');
+    ui.field('scope').value = 'selected_pages';
+    ui.fire('scope', 'change');
+    const pageThree = ui.field('page-picker').children.find((label) => label.children?.[0]?.value === 3);
+    pageThree.children[0].checked = true;
+    pageThree.children[0].dispatchEvent({ type: 'change' });
+
+    assert.equal(Number(ui.field('page').value), 3);
+    assert.equal(Number(ui.submitted('page')), 3);
+
+    ui.field('active-signer').value = 1;
+    ui.fire('active-signer', 'change');
+    ui.field('active-signer').value = 0;
+    ui.fire('active-signer', 'change');
+    assert.equal(Number(ui.field('page').value), 3);
 });

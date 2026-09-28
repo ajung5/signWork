@@ -335,6 +335,24 @@ class PdfWorkerTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             worker.specimens.layout({'specimen_format': 'framed', 'profile_snapshot': profile})
 
+    def test_framed_specimen_places_signer_name_above_rank_after_spacing(self):
+        profile = {'name': 'Agung Nawawi', 'jabatan': 'Analis', 'unit_kerja': 'Diskominfo',
+                   'pangkat': 'Penata', 'golongan': 'III/c'}
+        spec = worker.specimens.layout({'specimen_format': 'framed', 'profile_snapshot': profile})
+        by_text = {line['text']: line for line in spec['lines']}
+        leading = spec['lines'][1]['size'] * 1.2
+
+        self.assertAlmostEqual(
+            by_text[profile['name']]['y'] - by_text[profile['unit_kerja'].upper()]['y'],
+            4 * leading,
+            places=5,
+        )
+        self.assertAlmostEqual(
+            by_text[f"{profile['pangkat']} ({profile['golongan']})"]['y'] - by_text[profile['name']]['y'],
+            leading,
+            places=5,
+        )
+
 
 
 if __name__ == '__main__':
