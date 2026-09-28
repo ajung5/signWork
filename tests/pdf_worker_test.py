@@ -183,7 +183,7 @@ class PdfWorkerTest(unittest.TestCase):
                         'step': step, 'receipt': 'test', 'verification_url': 'https://example.test/verify/demo'})
             self.assertTrue(output.read_bytes().startswith(previous.read_bytes()))
             with fitz.open(output) as doc:
-                self.assertEqual(doc[0].get_text().count('KABUPATEN SUBANG'), 1)
+                self.assertNotIn('KABUPATEN SUBANG', doc[0].get_text())
                 self.assertEqual(doc[0].get_text().count('SIMULASI TTE - BUKAN TTE SAH'), 1)
                 self.assertEqual(len(doc[0].get_image_info()), index + 1)
                 rects = [fitz.Rect(image['bbox']) for image in doc[0].get_image_info()]
@@ -259,6 +259,33 @@ class PdfWorkerTest(unittest.TestCase):
             self.assertEqual(len(doc[0].get_image_info()), 1)
             self.assertEqual(len(doc[1].get_image_info()), 0)
             self.assertEqual(len(doc[2].get_image_info()), 1)
+
+    def test_selected_page_specimens_use_a_different_position_per_page(self):
+        source = Path(self.directory.name) / 'three-pages-dynamic.pdf'
+        with fitz.open() as doc:
+            for _ in range(3):
+                doc.new_page(width=595, height=842)
+            doc.save(source)
+        step = {'sequence': 1, 'placeholder': '${tte:signer:1}', 'name_snapshot': 'Signer 1',
+                'page': 1, 'specimen_pages': [1, 3], 'x': 30, 'y': 100,
+                'specimen_format': 'qr_2cm', 'specimen_scope': 'selected_pages',
+                'specimen_positions': {
+                    '1': {'x': 30, 'y': 100, 'width': 56.693, 'height': 56.693},
+                    '3': {'x': 300, 'y': 500, 'width': 56.693, 'height': 56.693},
+                }}
+        worker.run({'action': 'prepare', 'input': str(source), 'output': str(self.output), 'steps': [step],
+                    'specimen_version': 1, 'verification_url': 'https://example.test/verify/demo'})
+        signed = Path(self.directory.name) / 'selected-pages-dynamic.pdf'
+        worker.run({'action': 'mock_sign', 'input': str(self.output), 'output': str(signed),
+                    'receipt': 'selected pages dynamic', 'step': step,
+                    'verification_url': 'https://example.test/verify/demo'})
+        with fitz.open(signed) as doc:
+            first = fitz.Rect(doc[0].get_image_info()[0]['bbox'])
+            third = fitz.Rect(doc[2].get_image_info()[0]['bbox'])
+            self.assertAlmostEqual(first.x0, 30, places=2)
+            self.assertAlmostEqual(first.y0, 100, places=2)
+            self.assertAlmostEqual(third.x0, 300, places=2)
+            self.assertAlmostEqual(third.y0, 500, places=2)
 
     def test_selected_pages_must_be_nonempty_and_in_range(self):
         step = self.steps()[0]

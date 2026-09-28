@@ -17,6 +17,7 @@ class StoreDocumentRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'pdf' => ['required', 'file', 'mimes:pdf,doc,docx', 'extensions:pdf,doc,docx', 'max:'.config('signwork.max_upload_kb')],
             'document_number' => [
                 'nullable',
                 'string',
@@ -40,19 +41,19 @@ class StoreDocumentRequest extends FormRequest
                     WorkflowMasterType::Destination
                 ),
             ],
-            'approver_id' => [
+            'approvers' => ['required', 'array', 'min:1', 'max:10'],
+            'approvers.*' => [
                 'required',
                 'integer',
-                $this->masterEntryRule(
-                    WorkflowMasterType::Approver
-                ),
+                'distinct',
+                $this->masterEntryRule(WorkflowMasterType::Approver),
             ],
-            'signer_id' => [
+            'signers' => ['required', 'array', 'min:1', 'max:10'],
+            'signers.*' => [
                 'required',
                 'integer',
-                $this->masterEntryRule(
-                    WorkflowMasterType::Signer
-                ),
+                'distinct',
+                $this->masterEntryRule(WorkflowMasterType::Signer),
             ],
         ];
     }
@@ -60,10 +61,31 @@ class StoreDocumentRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'pdf.required' => 'Dokumen sumber wajib diunggah.',
             'destination_user_id.exists' => 'Tujuan dokumen harus berasal dari Data Master Tujuan Anda.',
-            'approver_id.exists' => 'Approver harus berasal dari Data Master Approver Anda.',
-            'signer_id.exists' => 'Signer harus berasal dari Data Master Signer Anda.',
+            'approvers.*.distinct' => 'Verifikator tidak boleh dipilih berulang.',
+            'signers.*.distinct' => 'Signer tidak boleh dipilih berulang.',
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'approvers' => $this->participantInput('approvers', 'approver_id'),
+            'signers' => $this->participantInput('signers', 'signer_id'),
+        ]);
+    }
+
+    /** @return list<mixed> */
+    private function participantInput(string $plural, string $legacy): array
+    {
+        $value = $this->input($plural);
+
+        if (is_array($value)) {
+            return array_values($value);
+        }
+
+        return filled($this->input($legacy)) ? [$this->input($legacy)] : [];
     }
 
     private function masterEntryRule(

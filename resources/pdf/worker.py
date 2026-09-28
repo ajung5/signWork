@@ -53,6 +53,30 @@ def scan(doc):
     return {'pages': pages, 'placeholders': placeholders}
 
 
+def specimen_pages(step, total_pages):
+    scope = step.get('specimen_scope') or 'selected_page'
+    if scope == 'all_pages':
+        return list(range(1, total_pages + 1))
+    if scope == 'selected_pages':
+        try:
+            return sorted({int(value) for value in (step.get('specimen_pages') or [])})
+        except (TypeError, ValueError) as error:
+            raise InvalidPdf('Daftar halaman spesimen tidak valid.') from error
+    return [int(step.get('page') or 0)]
+
+
+def specimen_position(step, page_number):
+    """Return the page-specific position, falling back to legacy x/y fields."""
+    positions = step.get('specimen_positions') or {}
+    position = positions.get(str(page_number), positions.get(page_number))
+    if position is None:
+        position = step
+    try:
+        return {key: float(position[key]) for key in ['x', 'y', 'width', 'height']}
+    except (KeyError, TypeError, ValueError) as error:
+        raise InvalidPdf(f'Posisi spesimen halaman {page_number} belum lengkap.') from error
+
+
 def validate_positions(doc, steps):
     if not 1 <= len(steps) <= 10:
         raise InvalidPdf('Jumlah signer harus 1–10.')
@@ -61,36 +85,27 @@ def validate_positions(doc, steps):
         scope = step.get('specimen_scope') or 'selected_page'
         if scope not in {'all_pages', 'selected_pages', 'selected_page'}:
             raise InvalidPdf('Cakupan spesimen tidak valid.')
-        if scope == 'all_pages':
-            page_numbers = list(range(1, len(doc) + 1))
-        elif scope == 'selected_pages':
-            try:
-                page_numbers = sorted({int(value) for value in (step.get('specimen_pages') or [])})
-            except (TypeError, ValueError) as error:
-                raise InvalidPdf('Daftar halaman spesimen tidak valid.') from error
+        page_numbers = specimen_pages(step, len(doc))
+        if scope == 'selected_pages':
             if not page_numbers:
                 raise InvalidPdf('Pilih minimal satu halaman untuk spesimen.')
-            if any(n < 1 or n > len(doc) for n in page_numbers):
-                raise InvalidPdf('Halaman posisi tidak tersedia.')
-        else:
-            n = int(step['page'])
-            if not 1 <= n <= len(doc):
-                raise InvalidPdf('Halaman posisi tidak tersedia.')
-            page_numbers = [n]
-        values = [float(step[key]) for key in ['x', 'y', 'width', 'height']]
-        if not all(math.isfinite(v) for v in values):
-            raise InvalidPdf('Koordinat tidak valid.')
-        x, y, width, height = values
+        if any(n < 1 or n > len(doc) for n in page_numbers):
+            raise InvalidPdf('Halaman posisi tidak tersedia.')
         if step.get('specimen_format'):
             try:
                 spec = specimens.layout(step)
             except ValueError as error:
                 raise InvalidPdf(str(error)) from error
-            if abs(width - spec['width']) > .01 or abs(height - spec['height']) > .01:
-                raise InvalidPdf('Ukuran spesimen berubah. Muat ulang preview dan konfirmasi kembali.')
-        elif width < 72 or height < 54 or width > 400 or height > 300:
-            raise InvalidPdf('Ukuran blok minimal 72×54 dan maksimal 400×300 point.')
         for n in page_numbers:
+            position = specimen_position(step, n)
+            x, y, width, height = [position[key] for key in ['x', 'y', 'width', 'height']]
+            if not all(math.isfinite(v) for v in [x, y, width, height]):
+                raise InvalidPdf('Koordinat tidak valid.')
+            if step.get('specimen_format'):
+                if abs(width - spec['width']) > .01 or abs(height - spec['height']) > .01:
+                    raise InvalidPdf('Ukuran spesimen berubah. Muat ulang preview dan konfirmasi kembali.')
+            elif width < 72 or height < 54 or width > 400 or height > 300:
+                raise InvalidPdf('Ukuran blok minimal 72×54 dan maksimal 400×300 point.')
             rect = fitz.Rect(x, y, x + width, y + height)
             if not doc[n - 1].rect.contains(rect):
                 raise InvalidPdf(f'Blok QR keluar batas halaman {n}. Pindahkan melalui preview.')
@@ -130,18 +145,13 @@ def draw_signed_qr(doc, payload):
     if not url.startswith(('https://', 'http://')) or len(url) > 350:
         raise InvalidPdf('URL verifikasi tidak valid atau terlalu panjang.')
     step = steps[0]
-    scope = step.get('specimen_scope') or 'selected_page'
-    if scope == 'all_pages':
-        page_numbers = range(1, len(doc) + 1)
-    elif scope == 'selected_pages':
-        page_numbers = sorted({int(value) for value in (step.get('specimen_pages') or [])})
-    else:
-        page_numbers = [int(step['page'])]
+    page_numbers = specimen_pages(step, len(doc))
     for n in page_numbers:
-        rect = fitz.Rect(float(step['x']), float(step['y']), float(step['x']) + float(step['width']), float(step['y']) + float(step['height']))
+        position = specimen_position(step, n)
+        rect = fitz.Rect(position['x'], position['y'], position['x'] + position['width'], position['y'] + position['height'])
         page = doc[n - 1]
         if step.get('specimen_format'):
-            specimens.draw(page, step, url, rect.x0, rect.y0)
+            specimens.draw(page, step, url, position['x'], position['y'])
             continue
         qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=8, border=4)
         qr.add_data(url)

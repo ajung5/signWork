@@ -8,10 +8,16 @@
     <form action="{{ route('documents.pdf.store', $document) }}" method="POST" enctype="multipart/form-data" class="space-y-5 rounded-xl border border-slate-200 bg-white p-6">
         @csrf
         <h2 class="text-lg font-semibold">1. Dokumen sumber dan urutan peserta</h2>
-        <label class="block text-sm font-medium">{{ $cycle ? 'Ganti dokumen (opsional)' : 'Unggah PDF atau Word' }}
-            <input type="file" name="pdf" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" @required(!$cycle) class="mt-2 block w-full rounded-lg border border-slate-300 p-3">
-        </label>
-        <p class="text-sm text-slate-600">Maksimal 5 MB, tanpa batas jumlah halaman. Word (.doc/.docx) dikonversi menjadi PDF; periksa hasil konversinya. PDF tanpa enkripsi, form, atau tanda tangan digital sebelumnya. Placeholder: <code>${tte:signer:1}</code>, <code>${tte:signer:2}</code>. PDF hasil scan menggunakan posisi manual.</p>
+        @if ($cycle)
+            <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+                Dokumen sumber sudah tersimpan: <strong>{{ $cycle->source_name ?: 'PDF tersimpan' }}</strong>. Tidak perlu mengunggah ulang untuk mengatur peserta dan posisi specimen.
+            </div>
+        @else
+            <label class="block text-sm font-medium">Unggah PDF atau Word
+                <input type="file" name="pdf" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required class="mt-2 block w-full rounded-lg border border-slate-300 p-3">
+            </label>
+            <p class="text-sm text-slate-600">Maksimal 5 MB, tanpa batas jumlah halaman. Word (.doc/.docx) dikonversi menjadi PDF; periksa hasil konversinya. Placeholder: <code>${tte:signer:1}</code>, <code>${tte:signer:2}</code>. PDF hasil scan menggunakan posisi manual.</p>
+        @endif
         <div class="grid gap-6 md:grid-cols-2">
         @foreach(['approver' => 'Verifikator', 'signer' => 'Signer'] as $type => $label)
             @php
@@ -38,7 +44,7 @@
         @endforeach
         </div>
         <p class="text-sm text-slate-600">Nama tersedia dari Data Master. Orang yang sama boleh menjadi verifikator sekaligus signer, tetapi tidak boleh berulang dalam satu daftar.</p>
-        <button class="rounded-lg bg-blue-700 px-4 py-3 font-semibold text-white">Simpan dokumen & urutan, lalu periksa posisi</button>
+        <button class="rounded-lg bg-blue-700 px-4 py-3 font-semibold text-white">{{ $cycle ? 'Simpan peserta & urutan' : 'Simpan dokumen & urutan, lalu periksa posisi' }}</button>
     </form>
     @if($cycle && $document->isDraft())
     <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-6" data-placement
@@ -47,7 +53,7 @@
         data-pages="{{ json_encode($cycle->pdf_metadata['pages']) }}"
         data-steps="{{ json_encode($specimenSteps) }}">
         <h2 class="text-lg font-semibold">2. Periksa posisi QR pada preview</h2>
-        <p class="text-sm text-slate-600">Pilih signer, cakupan halaman, lalu pilih beberapa halaman bila diperlukan. Klik area kosong atau geser blok pada PDF untuk menentukan posisi. Untuk <strong>Semua halaman</strong>, posisi yang dipilih menjadi posisi yang sama pada setiap halaman.</p>
+        <p class="text-sm text-slate-600">Pilih signer, cakupan halaman, lalu pilih beberapa halaman bila diperlukan. Klik area kosong atau geser blok pada PDF untuk menentukan posisi. Untuk <strong>Semua halaman</strong>, posisi yang dipilih menjadi posisi yang sama pada setiap halaman. Untuk <strong>beberapa halaman</strong>, pilih halaman satu per satu lalu atur posisi masing-masing.</p>
         <div class="z-10 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-0 lg:grid-cols-6">
             <label class="text-sm">Signer <select data-active-signer class="mt-1 block w-full min-w-0 rounded border border-slate-300 p-2"></select></label>
             <label class="text-sm">Cakupan QR <select data-scope class="mt-1 block w-full min-w-0 rounded border border-slate-300 p-2"><option value="all_pages">Semua halaman</option><option value="selected_pages">Pilih beberapa halaman</option></select></label>
@@ -59,9 +65,9 @@
         <div data-page-picker class="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm" aria-live="polite"></div>
         <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-slate-700">
             <p>Format 1: QR Code 2 × 2 cm dengan teks identitas penandatangan. Format 2: QR Code saja 2 × 2 cm. Format 3: QR Code saja 3 × 3 cm. Semua ukuran dihitung otomatis dan tidak menggunakan ukuran manual.</p>
-            <p class="mt-2">Dokumen baru menggunakan cakupan semua halaman secara default. Jika memilih cakupan khusus, centang lebih dari satu halaman—misalnya halaman 1, 3, dan 5. Dokumen lama tetap menggunakan halaman yang sudah tersimpan.</p>
+            <p class="mt-2">Dokumen baru menggunakan cakupan semua halaman secara default. Jika memilih cakupan khusus, centang lebih dari satu halaman—misalnya halaman 1, 3, dan 5. Posisi tiap halaman disimpan terpisah dan dapat berbeda sesuai penempatan Anda.</p>
             <p class="mt-2">Footer simulasi ditambahkan pada pita baru setinggi 1,2 cm di bawah setiap halaman. Ukuran halaman bertambah tanpa mengecilkan isi surat. Blok spesimen harus berada di area surat, bukan di footer.</p>
-            <p class="mt-2">Preview spesimen adalah panduan. Pada PDF hasil proses, spesimen hanya muncul setelah signer tersebut menandatangani. Identitas disimpan saat posisi dikonfirmasi; perubahan profil berikutnya tidak mengubah dokumen ini.</p>
+            <p class="mt-2">Jika PDF memuat placeholder seperti <code>${tte:signer:1}</code>, posisi awal akan dideteksi otomatis saat file diunggah. Anda tetap dapat menyesuaikannya melalui preview. Identitas disimpan saat posisi dikonfirmasi; perubahan profil berikutnya tidak mengubah dokumen ini.</p>
         </div>
         <p data-dimension-hint class="text-xs text-slate-500"></p>
         <div data-signer-progress class="flex flex-wrap gap-2 text-xs"></div>

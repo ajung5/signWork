@@ -165,22 +165,16 @@ test('overlapping positions are rejected and workflow configuration locks after 
     $this->post(route('documents.pdf.store', $document), [])->assertForbidden();
 });
 
-test('newly created documents require a PDF workflow while legacy records remain compatible', function () {
+test('newly created documents save the PDF workflow before redirecting to the document list', function () {
     [$source, $owner, $approvers, $signers] = pdfWorkflowFixture();
     WorkflowMasterEntry::create(['user_id' => $owner->id, 'target_user_id' => $owner->id, 'type' => 'destination']);
     $this->actingAs($owner)->post(route('documents.store'), [
         'title' => 'Dokumen baru', 'destination_user_id' => $owner->id,
         'approver_id' => $approvers[0]->id, 'signer_id' => $signers[0]->id,
-    ])->assertSessionHasNoErrors();
+        'pdf' => new UploadedFile(base_path('tests/Fixtures/scanned.pdf'), 'fixture.pdf', 'application/pdf', null, true),
+    ])->assertSessionHasNoErrors()->assertRedirect(route('documents.index'));
     $document = Document::where('title', 'Dokumen baru')->firstOrFail();
     expect($document->requires_pdf_workflow)->toBeTrue();
-    $this->post(route('documents.submit', $document))->assertSessionHasErrors('pdf');
-    expect($document->fresh()->status)->toBe(DocumentStatus::Draft);
-    $this->post(route('documents.pdf.store', $document), [
-        'approvers' => [$approvers[0]->id, $approvers[1]->id],
-        'signers' => [$signers[0]->id, $signers[1]->id],
-        'pdf' => new UploadedFile(base_path('tests/Fixtures/two-signers.pdf'), 'fixture.pdf', 'application/pdf', null, true),
-    ])->assertSessionHasNoErrors()->assertRedirect(route('documents.pdf.edit', $document));
     expect($document->fresh()->workflow_cycle)->toBe(1);
 });
 

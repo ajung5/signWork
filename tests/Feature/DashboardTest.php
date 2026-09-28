@@ -25,6 +25,14 @@ test('dashboard includes owned documents', function () {
         );
 });
 
+test('user dashboard does not show the create document button', function () {
+    $user = $this->signIn();
+
+    $this->get(route('dashboard'))
+        ->assertOk()
+        ->assertDontSee('Buat Dokumen');
+});
+
 test('dashboard includes sent final document where user is destination', function () {
     $user = $this->signIn();
     $owner = User::factory()->create();

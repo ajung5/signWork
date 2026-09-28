@@ -168,17 +168,22 @@
                         </p>
                     </div>
 
-                    <div class="flex shrink-0 items-center gap-4">
-                        <a href="{{ route('profile.edit') }}" aria-label="Buka profil {{ auth()->user()->name }}"
-                            class="rounded-xl px-3 py-2 text-right transition hover:bg-blue-50">
-                            <p class="text-sm font-medium text-slate-900">
-                                {{ auth()->user()->name }}
-                            </p>
-
-                            <p class="text-xs text-slate-500">
-                                {{ auth()->user()->role->label() }} · Profil Saya
-                            </p>
-                        </a>
+                    <div class="flex shrink-0 items-center gap-3">
+                        <details class="relative">
+                            <summary class="flex cursor-pointer list-none items-center gap-3 rounded-xl px-3 py-2 text-right transition hover:bg-blue-50 [&::-webkit-details-marker]:hidden">
+                                <span>
+                                    <span class="block text-sm font-medium text-slate-900">{{ auth()->user()->name }}</span>
+                                    <span class="block text-xs text-slate-500">{{ auth()->user()->role->label() }} · Profil Saya</span>
+                                </span>
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 text-slate-500">
+                                    <path d="m6 9 6 6 6-6" />
+                                </svg>
+                            </summary>
+                            <div class="absolute right-0 z-30 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 text-left shadow-lg">
+                                <a href="{{ route('profile.show') }}" class="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-blue-50">Lihat Profil</a>
+                                <a href="{{ route('profile.edit') }}" class="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-blue-50">Edit Profil</a>
+                            </div>
+                        </details>
 
                         <form action="{{ route('logout') }}" method="POST">
                             @csrf

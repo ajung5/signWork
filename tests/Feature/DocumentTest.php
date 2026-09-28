@@ -5,6 +5,8 @@ use App\Models\Document;
 use App\Models\User;
 use App\Models\WorkflowMasterEntry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
@@ -39,6 +41,7 @@ function seedDocumentMasterFor(
 }
 
 test('document can be created from users workflow master', function () {
+    Storage::fake('local');
     $owner = $this->signIn();
     $destination = User::factory()->create();
     $approver = User::factory()->create();
@@ -60,6 +63,7 @@ test('document can be created from users workflow master', function () {
             'destination_user_id' => $destination->id,
             'approver_id' => $approver->id,
             'signer_id' => $signer->id,
+            'pdf' => new UploadedFile(base_path('tests/Fixtures/scanned.pdf'), 'scan.pdf', 'application/pdf', null, true),
         ]
     )->assertRedirect();
 
@@ -83,6 +87,7 @@ test('document can be created from users workflow master', function () {
 });
 
 test('document cannot select user outside owners workflow master', function () {
+    Storage::fake('local');
     $owner = $this->signIn();
 
     $destination = User::factory()->create();
@@ -104,6 +109,7 @@ test('document cannot select user outside owners workflow master', function () {
             'destination_user_id' => $outside->id,
             'approver_id' => $approver->id,
             'signer_id' => $signer->id,
+            'pdf' => new UploadedFile(base_path('tests/Fixtures/scanned.pdf'), 'scan.pdf', 'application/pdf', null, true),
         ]
     )->assertSessionHasErrors(
         'destination_user_id'

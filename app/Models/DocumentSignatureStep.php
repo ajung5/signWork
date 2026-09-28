@@ -10,6 +10,7 @@ class DocumentSignatureStep extends DocumentApprovalStep
             'profile_snapshot' => 'array', 'acted_at' => 'datetime', 'page' => 'integer',
             'specimen_scope' => 'string',
             'specimen_pages' => 'array',
+            'specimen_positions' => 'array',
             'x' => 'float', 'y' => 'float', 'width' => 'float', 'height' => 'float',
         ];
     }

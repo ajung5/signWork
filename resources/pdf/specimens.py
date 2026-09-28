@@ -52,7 +52,6 @@ def layout(step):
         ('Ditandatangani secara elektronik oleh:', False),
         (profile['jabatan'], False),
         (profile['unit_kerja'].upper(), False),
-        ('KABUPATEN SUBANG', False),
         (profile['name'], True),
         (f"{profile['pangkat']} ({profile['golongan']})", False),
     ]

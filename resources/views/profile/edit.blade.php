@@ -25,6 +25,7 @@
         @include('admin.users.specimen-fields', ['user' => $user])
         <div class="flex flex-wrap items-center gap-3">
             <button type="submit" class="rounded-xl bg-blue-700 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-800">Simpan Profil</button>
+            <a href="{{ route('profile.show') }}" class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Lihat Profil</a>
             <a href="{{ route('dashboard') }}" class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Kembali</a>
         </div>
     </form>

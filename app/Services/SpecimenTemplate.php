@@ -28,7 +28,7 @@ class SpecimenTemplate
         $steps = $cycle->signatures()->with('user')->get()->map(function ($step): array {
             $profile = $this->profile($step->user);
 
-            return [...$step->only(['id', 'sequence', 'name_snapshot', 'page', 'x', 'y', 'width', 'height', 'specimen_format', 'specimen_scope', 'specimen_pages']), 'profile_snapshot' => $profile, 'profile_fingerprint' => $this->fingerprint($profile)];
+            return [...$step->only(['id', 'sequence', 'name_snapshot', 'placeholder', 'placement_source', 'page', 'x', 'y', 'width', 'height', 'specimen_format', 'specimen_scope', 'specimen_pages', 'specimen_positions']), 'profile_snapshot' => $profile, 'profile_fingerprint' => $this->fingerprint($profile)];
         });
         $result = app(PdfEngine::class)->run('specimens', $cycle->original_path, [
             'steps' => $steps->all(), 'previews' => $previews,
@@ -43,7 +43,7 @@ class SpecimenTemplate
             $layouts['qr_3x3'] = $layouts['qr_3cm'];
 
             return [
-                ...collect($step)->only(['id', 'sequence', 'name_snapshot', 'page', 'x', 'y', 'width', 'height', 'specimen_format', 'specimen_scope', 'specimen_pages', 'profile_fingerprint'])->all(),
+                ...collect($step)->only(['id', 'sequence', 'name_snapshot', 'placeholder', 'placement_source', 'page', 'x', 'y', 'width', 'height', 'specimen_format', 'specimen_scope', 'specimen_pages', 'specimen_positions', 'profile_fingerprint'])->all(),
                 'layouts' => $layouts,
             ];
         })->all();

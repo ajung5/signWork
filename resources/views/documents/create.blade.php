@@ -23,7 +23,7 @@
 
                 <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
                     Pilihan Tujuan, Verifikator, dan Signer berasal dari Data Master akun Anda.
-                    Pilih peserta pertama di sini. Setelah Draft disimpan, unggah PDF dan tambahkan peserta berikutnya melalui PDF & Alur.
+                    Unggah dokumen sumber di halaman ini. Setelah Draft disimpan, Anda cukup mengatur posisi specimen tanpa mengunggah ulang.
                 </p>
             </div>
 
@@ -50,6 +50,7 @@
         <form
             action="{{ route('documents.store') }}"
             method="POST"
+            enctype="multipart/form-data"
             class="mt-7 grid gap-6 lg:grid-cols-3"
         >
             @csrf
@@ -131,6 +132,26 @@
                             </p>
                         @enderror
                     </div>
+
+                    <div>
+                        <label for="pdf" class="block text-sm font-medium text-slate-700">
+                            Dokumen Sumber
+                        </label>
+                        <input
+                            id="pdf"
+                            name="pdf"
+                            type="file"
+                            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                            required
+                            class="mt-2 block w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900"
+                        >
+                        <p class="mt-2 text-xs leading-5 text-slate-500">
+                            PDF, DOC, atau DOCX maksimal 5 MB. Placeholder yang didukung: <code>${tte:signer:1}</code>, <code>${tte:signer:2}</code>, dan seterusnya.
+                        </p>
+                        @error('pdf')
+                            <p class="mt-2 text-sm text-red-700">{{ $message }}</p>
+                        @enderror
+                    </div>
                 </div>
             </section>
 
@@ -182,81 +203,38 @@
                             @enderror
                         </div>
 
-                        <div>
-                            <label
-                                for="approver_id"
-                                class="block text-sm font-medium text-slate-700"
-                            >
-                                Verifikator
-                            </label>
-
-                            <select
-                                id="approver_id"
-                                name="approver_id"
-                                required
-                                class="mt-2 block w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-800"
-                            >
-                                <option value="">
-                                    Pilih Verifikator
-                                </option>
-
-                                @foreach ($approverUsers as $user)
-                                    <option
-                                        value="{{ $user->id }}"
-                                        @selected(old('approver_id', $defaults['approver_id']) == $user->id)
-                                    >
-                                        {{ $user->name }}
-                                        @if ($user->id === auth()->id())
-                                            (Saya)
-                                        @endif
-                                    </option>
-                                @endforeach
-                            </select>
-
-                            @error('approver_id')
-                                <p class="mt-2 text-sm text-red-700">
-                                    {{ $message }}
-                                </p>
-                            @enderror
-                        </div>
-
-                        <div>
-                            <label
-                                for="signer_id"
-                                class="block text-sm font-medium text-slate-700"
-                            >
-                                Signer
-                            </label>
-
-                            <select
-                                id="signer_id"
-                                name="signer_id"
-                                required
-                                class="mt-2 block w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-800"
-                            >
-                                <option value="">
-                                    Pilih Signer
-                                </option>
-
-                                @foreach ($signerUsers as $user)
-                                    <option
-                                        value="{{ $user->id }}"
-                                        @selected(old('signer_id', $defaults['signer_id']) == $user->id)
-                                    >
-                                        {{ $user->name }}
-                                        @if ($user->id === auth()->id())
-                                            (Saya)
-                                        @endif
-                                    </option>
-                                @endforeach
-                            </select>
-
-                            @error('signer_id')
-                                <p class="mt-2 text-sm text-red-700">
-                                    {{ $message }}
-                                </p>
-                            @enderror
-                        </div>
+                        @foreach (['approver' => ['label' => 'Verifikator', 'users' => $approverUsers, 'master' => 'approvers', 'default' => $defaults['approver_id']], 'signer' => ['label' => 'Signer', 'users' => $signerUsers, 'master' => 'signers', 'default' => $defaults['signer_id']]] as $type => $config)
+                            @php
+                                $selectedParticipants = old($config['master'], [$config['default']]);
+                                $selectedParticipants = is_array($selectedParticipants) ? array_values($selectedParticipants) : [$selectedParticipants];
+                                $selectedParticipants = $selectedParticipants ?: [null];
+                            @endphp
+                            <section data-participant-list class="space-y-3">
+                                <div class="flex items-center justify-between gap-3">
+                                    <label class="text-sm font-medium text-slate-700">{{ $config['label'] }} — berurutan</label>
+                                    <button type="button" data-add class="rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-800">+ Tambah</button>
+                                </div>
+                                <div data-rows class="space-y-2">
+                                    @foreach ($selectedParticipants as $selectedId)
+                                        <div data-row class="flex items-center gap-2">
+                                            <span data-order class="w-5 text-center text-sm text-slate-500">{{ $loop->iteration }}</span>
+                                            <select name="{{ $config['master'] }}[]" required aria-label="{{ $config['label'] }}" class="min-w-0 flex-1 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-800">
+                                                <option value="">Pilih {{ $config['label'] }}</option>
+                                                @foreach ($config['users'] as $user)
+                                                    <option value="{{ $user->id }}" @selected($user->id == $selectedId)>{{ $user->name }}{{ $user->id === auth()->id() ? ' (Saya)' : '' }}</option>
+                                                @endforeach
+                                            </select>
+                                            <button type="button" data-up aria-label="Naik" class="rounded border px-2 py-1">↑</button>
+                                            <button type="button" data-down aria-label="Turun" class="rounded border px-2 py-1">↓</button>
+                                            <button type="button" data-remove aria-label="Hapus peserta" class="rounded border px-2 py-1 text-red-700">×</button>
+                                        </div>
+                                    @endforeach
+                                </div>
+                                @error($config['master'].'.0')
+                                    <p class="text-sm text-red-700">{{ $message }}</p>
+                                @enderror
+                            </section>
+                        @endforeach
                     </div>
                 </div>
 

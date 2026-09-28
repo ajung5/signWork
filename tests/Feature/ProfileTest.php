@@ -16,6 +16,17 @@ test('authenticated users can view their own profile', function (UserRole $role)
     $this->actingAs($user)->get(route('profile.edit'))->assertOk()->assertSee('Profil Saya')->assertSee($user->email)->assertSee('Analis');
 })->with([UserRole::User, UserRole::Admin]);
 
+test('authenticated users can open the read-only profile view and edit link', function () {
+    $user = User::factory()->create(['jabatan' => 'Analis']);
+
+    $this->actingAs($user)
+        ->get(route('profile.show'))
+        ->assertOk()
+        ->assertSee('Profil Saya')
+        ->assertSee('Edit Profil')
+        ->assertSee('Analis');
+});
+
 test('profile updates only the authenticated identity fields and displays modal feedback', function () {
     $user = User::factory()->create();
     $other = User::factory()->create();

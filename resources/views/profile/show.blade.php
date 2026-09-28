@@ -9,7 +9,7 @@
                 <p class="text-sm font-medium text-emerald-700">Akun</p>
                 <h1 class="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Profil Saya</h1>
                 <p class="mt-2 text-sm leading-6 text-slate-500">
-                    {{ $user->isAdmin() ? 'Profil Admin dibatasi pada informasi unit kerja.' : 'Informasi profil ini digunakan sebagai identitas pada spesimen TTE.' }}
+                    Informasi profil ini digunakan sebagai identitas pada spesimen TTE dan dapat diperbarui dari menu Edit Profil.
                 </p>
             </div>
 
@@ -21,25 +21,19 @@
 
         <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <dl class="divide-y divide-slate-100">
-                @if ($user->isAdmin())
+                @foreach ([
+                    'Nama' => $user->name,
+                    'Email' => $user->email,
+                    'Role' => $user->role->label(),
+                    'Jabatan' => $user->jabatan,
+                    'Unit Kerja' => $user->unit_kerja,
+                    'Pangkat / Golongan' => trim(($user->pangkat ?: '-') . ' / ' . ($user->golongan ?: '-')),
+                ] as $label => $value)
                     <div class="grid gap-1 px-5 py-4 sm:grid-cols-3 sm:gap-4 sm:px-6">
-                        <dt class="text-sm font-medium text-slate-500">Unit Kerja</dt>
-                        <dd class="text-sm text-slate-900 sm:col-span-2">{{ $user->unit_kerja ?: '-' }}</dd>
+                        <dt class="text-sm font-medium text-slate-500">{{ $label }}</dt>
+                        <dd class="text-sm text-slate-900 sm:col-span-2">{{ $value ?: '-' }}</dd>
                     </div>
-                @else
-                    @foreach ([
-                        'Nama' => $user->name,
-                        'Email' => $user->email,
-                        'Jabatan' => $user->jabatan,
-                        'Unit Kerja' => $user->unit_kerja,
-                        'Pangkat / Golongan' => trim(($user->pangkat ?: '-') . ' / ' . ($user->golongan ?: '-')),
-                    ] as $label => $value)
-                        <div class="grid gap-1 px-5 py-4 sm:grid-cols-3 sm:gap-4 sm:px-6">
-                            <dt class="text-sm font-medium text-slate-500">{{ $label }}</dt>
-                            <dd class="text-sm text-slate-900 sm:col-span-2">{{ $value ?: '-' }}</dd>
-                        </div>
-                    @endforeach
-                @endif
+                @endforeach
             </dl>
         </div>
     </div>

@@ -42,11 +42,6 @@
                 Lihat Dokumen
             </a>
 
-            <a href="{{ route('documents.create') }}"
-                class="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-800 transition hover:bg-blue-100">
-                <span class="text-lg leading-none">+</span>
-                Buat Dokumen
-            </a>
         </div>
     </div>
 

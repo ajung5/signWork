@@ -36,64 +36,118 @@ ready(() => {
     const blocks = root.querySelector('[data-blocks]');
     const inputs = root.querySelector('[data-position-inputs]');
     const statuses = root.querySelectorAll('[data-placement-status]');
+    const form = root.querySelector('[data-position-form]');
+    const zoom = root.querySelector('[data-zoom]');
+    const scroller = root.querySelector('[data-preview-scroll]');
+    const format = root.querySelector('[data-format]');
     const setStatus = (message, invalid = false) => statuses.forEach(status => {
         status.textContent = message;
         status.classList.toggle('text-red-700', invalid);
         status.classList.toggle('text-blue-800', !invalid);
     });
-    const form = root.querySelector('[data-position-form]');
-    const zoom = root.querySelector('[data-zoom]');
-    const scroller = root.querySelector('[data-preview-scroll]');
-    const format = root.querySelector('[data-format]');
     const fit = () => { surface.style.width = `${Math.max(240, Math.min(760, scroller.clientWidth - 24)) * Number(zoom.value)}px`; };
+    const pageByNumber = (number) => pages.find((item) => Number(item.page) === Number(number));
     const selectedPageNumbers = (step) => {
         if (step.specimen_scope === 'all_pages') return pages.map((item) => Number(item.page));
         if (step.specimen_scope === 'selected_pages') return [...new Set((step.specimen_pages || []).map(Number).filter(Number.isFinite))].sort((a, b) => a - b);
         return step.page ? [Number(step.page)] : [];
     };
-    const hasPage = (step, pageNumber) => selectedPageNumbers(step).includes(Number(pageNumber));
+    const hasCoordinates = (position) => position && ['x', 'y', 'width', 'height'].every((key) => position[key] !== null && position[key] !== undefined && Number.isFinite(Number(position[key])));
+    const pagePosition = (step, pageNumber) => {
+        const saved = step.specimen_scope === 'selected_pages'
+            ? step.specimen_positions?.[String(pageNumber)] ?? step.specimen_positions?.[pageNumber]
+            : null;
+        const position = saved || step;
+        if (!position) return null;
+        return {
+            x: position.x === null || position.x === undefined ? null : Number(position.x),
+            y: position.y === null || position.y === undefined ? null : Number(position.y),
+            width: Number(position.width),
+            height: Number(position.height),
+        };
+    };
+    const setPagePosition = (step, pageNumber, position) => {
+        const normalized = {
+            x: Number(position.x), y: Number(position.y),
+            width: Number(position.width), height: Number(position.height),
+        };
+        if (step.specimen_scope === 'selected_pages') {
+            step.specimen_positions ??= {};
+            step.specimen_positions[String(pageNumber)] = normalized;
+        }
+        step.page = Number(pageNumber);
+        step.x = normalized.x;
+        step.y = normalized.y;
+        step.width = normalized.width;
+        step.height = normalized.height;
+    };
+    const materializePagePositions = (step) => {
+        if (step.specimen_scope !== 'selected_pages') return;
+        step.specimen_positions ??= {};
+        selectedPageNumbers(step).forEach((pageNumber) => {
+            if (!step.specimen_positions[String(pageNumber)] && hasCoordinates(step)) {
+                step.specimen_positions[String(pageNumber)] = pagePosition(step, pageNumber);
+            }
+        });
+    };
     const ensureCurrentSelected = (step) => {
         const current = Number(pageSelect.value);
         step.specimen_pages = [...new Set([...selectedPageNumbers(step), current].filter((value) => value > 0))].sort((a, b) => a - b);
+        materializePagePositions(step);
         step.page = step.specimen_pages[0] || current;
     };
-    const issues = () => {
-        const problems = [];
-        steps.forEach((s, i) => {
-            const choice = s.layouts[s.specimen_format];
-            if (!choice || choice.error) { problems.push(`Signer ${i + 1} (${s.name_snapshot}): ${choice?.error || 'Pilih format spesimen'}`); return; }
-            const targetPageNumbers = selectedPageNumbers(s);
-            const targetPages = pages.filter(p => targetPageNumbers.includes(Number(p.page)));
-            if (s.specimen_scope === 'selected_pages' && targetPageNumbers.length === 0) { problems.push(`Signer ${i + 1}: pilih minimal satu halaman`); return; }
-            const p = targetPages[0];
-            if (!p || s.x === null || s.y === null) { problems.push(`Signer ${i + 1}: posisi belum ditentukan`); return; }
-            if (![s.x, s.y, s.width, s.height].every(v => Number.isFinite(Number(v))) || targetPages.some(page => s.x < 0 || s.y < 0 || s.x + s.width > page.width + 0.01 || s.y + s.height > page.height + 0.01)) problems.push(`Signer ${i + 1}: ukuran atau posisi keluar batas pada salah satu halaman`);
-            steps.slice(0, i).forEach((t, j) => {
-                const sharedPages = pages.filter(page => hasPage(s, page.page) && hasPage(t, page.page));
-                if (sharedPages.length && t.x !== null && t.y !== null && s.x < t.x + t.width && s.x + s.width > t.x && s.y < t.y + t.height && s.y + s.height > t.y) problems.push(`Signer ${j + 1} dan ${i + 1}: blok bertumpuk`);
-            });
-        });
-        return problems;
-    };
-    steps.forEach(s => ['x','y','width','height'].forEach(key => { if (s[key] !== null) s[key] = Number(s[key]); }));
-    steps.forEach(s => {
-        s.specimen_format = !s.specimen_format || s.specimen_format === 'qr_only' ? 'qr_2cm' : s.specimen_format;
-        if (s.specimen_scope === 'selected_page') {
-            s.specimen_scope = 'selected_pages';
-            s.specimen_pages = s.page ? [Number(s.page)] : [];
+    steps.forEach((step) => {
+        step.specimen_positions = step.specimen_positions && typeof step.specimen_positions === 'object' ? step.specimen_positions : {};
+        ['x', 'y', 'width', 'height'].forEach((key) => { if (step[key] !== null && step[key] !== undefined) step[key] = Number(step[key]); });
+        step.specimen_format = !step.specimen_format || step.specimen_format === 'qr_only' ? 'qr_2cm' : step.specimen_format;
+        if (step.specimen_scope === 'selected_page') {
+            step.specimen_scope = 'selected_pages';
+            step.specimen_pages = step.page ? [Number(step.page)] : [];
         } else {
-            s.specimen_scope = s.specimen_scope || 'all_pages';
-            s.specimen_pages = Array.isArray(s.specimen_pages) ? [...new Set(s.specimen_pages.map(Number).filter(Number.isFinite))].sort((a, b) => a - b) : [];
+            step.specimen_scope = step.specimen_scope || 'all_pages';
+            step.specimen_pages = Array.isArray(step.specimen_pages) ? [...new Set(step.specimen_pages.map(Number).filter(Number.isFinite))].sort((a, b) => a - b) : [];
         }
-        const choice = s.layouts[s.specimen_format];
-        if (choice && !choice.error) { s.width = choice.width; s.height = choice.height; }
+        const choice = step.layouts[step.specimen_format];
+        if (choice && !choice.error) {
+            step.width = choice.width;
+            step.height = choice.height;
+        }
+        materializePagePositions(step);
     });
     let loaded = false;
     let drag = null;
     steps.forEach((step, i) => signerSelect.add(new Option(`${i + 1}. ${step.name_snapshot}`, i)));
     pages.forEach(page => pageSelect.add(new Option(page.page, page.page)));
     const active = () => steps[Number(signerSelect.value)];
-    const page = () => pages[Number(pageSelect.value) - 1];
+    const page = () => pageByNumber(pageSelect.value);
+    const issues = () => {
+        const problems = [];
+        steps.forEach((step, i) => {
+            const choice = step.layouts[step.specimen_format];
+            if (!choice || choice.error) { problems.push(`Signer ${i + 1} (${step.name_snapshot}): ${choice?.error || 'Pilih format spesimen'}`); return; }
+            const targetPageNumbers = selectedPageNumbers(step);
+            if (step.specimen_scope === 'selected_pages' && targetPageNumbers.length === 0) { problems.push(`Signer ${i + 1}: pilih minimal satu halaman`); return; }
+            targetPageNumbers.forEach((pageNumber) => {
+                const targetPage = pageByNumber(pageNumber);
+                const position = pagePosition(step, pageNumber);
+                if (!targetPage || !hasCoordinates(position)) {
+                    problems.push(`Signer ${i + 1}: posisi belum ditentukan pada halaman ${pageNumber}`);
+                    return;
+                }
+                if (position.x < 0 || position.y < 0 || position.x + position.width > targetPage.width + 0.01 || position.y + position.height > targetPage.height + 0.01) {
+                    problems.push(`Signer ${i + 1}: posisi keluar batas pada halaman ${pageNumber}`);
+                }
+                steps.slice(0, i).forEach((previous, j) => {
+                    if (!selectedPageNumbers(previous).includes(pageNumber)) return;
+                    const previousPosition = pagePosition(previous, pageNumber);
+                    if (hasCoordinates(previousPosition) && position.x < previousPosition.x + previousPosition.width && position.x + position.width > previousPosition.x && position.y < previousPosition.y + previousPosition.height && position.y + position.height > previousPosition.y) {
+                        problems.push(`Signer ${j + 1} dan ${i + 1}: blok bertumpuk pada halaman ${pageNumber}`);
+                    }
+                });
+            });
+        });
+        return [...new Set(problems)];
+    };
     const draw = () => {
         blocks.replaceChildren();
         inputs.replaceChildren();
@@ -107,22 +161,33 @@ ready(() => {
             }
             if (step.specimen_scope === 'selected_pages') {
                 selectedPageNumbers(step).forEach((selectedPage) => {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = `positions[${i}][specimen_pages][]`;
-                    input.value = selectedPage;
-                    inputs.append(input);
+                    const pagePositionValue = pagePosition(step, selectedPage);
+                    const pageInput = (key) => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = `positions[${i}][specimen_positions][${selectedPage}][${key}]`;
+                        input.value = pagePositionValue?.[key] ?? '';
+                        inputs.append(input);
+                    };
+                    ['x', 'y', 'width', 'height'].forEach(pageInput);
+                    const selected = document.createElement('input');
+                    selected.type = 'hidden';
+                    selected.name = `positions[${i}][specimen_pages][]`;
+                    selected.value = selectedPage;
+                    inputs.append(selected);
                 });
             }
-            if (!loaded || !hasPage(step, Number(pageSelect.value)) || step.x === null || step.y === null) return;
+            if (!loaded || !selectedPageNumbers(step).includes(Number(pageSelect.value))) return;
+            const position = pagePosition(step, Number(pageSelect.value));
+            if (!hasCoordinates(position)) return;
             const block = document.createElement('button');
             block.type = 'button';
             block.dataset.index = i;
             block.className = 'absolute cursor-move overflow-hidden bg-white';
-            block.style.left = `${step.x / page().width * 100}%`;
-            block.style.top = `${step.y / (page().height + footerHeight) * 100}%`;
-            block.style.width = `${step.width / page().width * 100}%`;
-            block.style.height = `${step.height / (page().height + footerHeight) * 100}%`;
+            block.style.left = `${position.x / page().width * 100}%`;
+            block.style.top = `${position.y / (page().height + footerHeight) * 100}%`;
+            block.style.width = `${position.width / page().width * 100}%`;
+            block.style.height = `${position.height / (page().height + footerHeight) * 100}%`;
             block.style.outline = i === Number(signerSelect.value) ? '2px solid #FF95A5' : 'none';
             const choice = step.layouts[step.specimen_format];
             if (choice?.preview && !choice.error) {
@@ -133,10 +198,10 @@ ready(() => {
                 image.className = 'h-full w-full pointer-events-none';
                 block.append(image);
             } else {
-                block.textContent = `Signer ${i + 1}: spesimen belum tersedia. Lihat keterangan di bawah preview.`;
+                block.textContent = `Signer ${i + 1}: spesimen belum tersedia.`;
                 block.className += ' border border-red-300 bg-red-50 p-1 text-xs text-red-700';
             }
-            block.setAttribute('aria-label', `Geser blok ${step.name_snapshot}`);
+            block.setAttribute('aria-label', `Geser blok ${step.name_snapshot} pada halaman ${pageSelect.value}`);
             blocks.append(block);
         });
         const problems = issues();
@@ -144,11 +209,12 @@ ready(() => {
         root.querySelector('[data-confirm-positions]').disabled = problems.length > 0 || !loaded;
         const progress = root.querySelector('[data-signer-progress]');
         progress.replaceChildren();
-        steps.forEach((s, i) => {
+        steps.forEach((step, i) => {
             const badge = document.createElement('button'); badge.type = 'button';
             badge.className = 'rounded border border-slate-300 px-3 py-2';
-            const targets = selectedPageNumbers(s);
-            badge.textContent = `${i + 1}. ${s.name_snapshot} · ${s.specimen_scope === 'all_pages' ? 'semua halaman' : targets.length ? 'hal. ' + targets.join(', ') : 'belum ditempatkan'}`;
+            const targets = selectedPageNumbers(step);
+            const source = step.placement_source === 'placeholder' ? 'placeholder otomatis' : 'manual';
+            badge.textContent = `${i + 1}. ${step.name_snapshot} · ${step.specimen_scope === 'all_pages' ? 'semua halaman' : targets.length ? 'hal. ' + targets.join(', ') : 'belum ditempatkan'} · ${source}`;
             badge.addEventListener('click', () => { signerSelect.value = i; signerSelect.dispatchEvent(new Event('change')); });
             progress.append(badge);
         });
@@ -158,13 +224,13 @@ ready(() => {
         pagePicker.replaceChildren();
         const step = active();
         if (step.specimen_scope === 'all_pages') {
-            pagePicker.textContent = 'Spesimen akan dicetak pada semua halaman.';
+            pagePicker.textContent = 'Spesimen akan dicetak pada semua halaman dengan posisi yang sama.';
             return;
         }
         const selected = new Set(selectedPageNumbers(step));
         const label = document.createElement('span');
         label.className = 'basis-full text-slate-600';
-        label.textContent = 'Pilih halaman untuk spesimen (dapat lebih dari satu):';
+        label.textContent = 'Pilih halaman untuk spesimen (setiap halaman dapat memiliki posisi berbeda):';
         pagePicker.append(label);
         pages.forEach((item) => {
             const chip = document.createElement('label');
@@ -176,6 +242,7 @@ ready(() => {
             checkbox.addEventListener('change', () => {
                 step.specimen_scope = 'selected_pages';
                 step.specimen_pages = [...pagePicker.querySelectorAll('input:checked')].map((input) => Number(input.value)).sort((a, b) => a - b);
+                materializePagePositions(step);
                 step.page = step.specimen_pages[0] || null;
                 draw();
             });
@@ -188,13 +255,28 @@ ready(() => {
         scope.value = active().specimen_scope;
         renderPagePicker();
         const choice = active().layouts[active().specimen_format];
-        root.querySelector('[data-dimension-hint]').textContent = choice?.error || (choice ? `Ukuran otomatis: ${(choice.width / pointsPerCm).toFixed(2)} × ${(choice.height / pointsPerCm).toFixed(2)} cm. Zoom hanya memperbesar preview.` : 'Format spesimen tidak tersedia. Muat ulang halaman.');
+        root.querySelector('[data-dimension-hint]').textContent = choice?.error || (choice ? `Ukuran otomatis: ${(choice.width / pointsPerCm).toFixed(2)} × ${(choice.height / pointsPerCm).toFixed(2)} cm. Posisi disimpan per halaman saat memilih beberapa halaman.` : 'Format spesimen tidak tersedia. Muat ulang halaman.');
     };
     const load = () => {
         loaded = false;
         preview.style.opacity = '0.3';
         draw();
         preview.src = `${root.dataset.previewUrl}?page=${pageSelect.value}`;
+    };
+    const locate = (event, offset = {x: 0, y: 0}) => {
+        const bounds = surface.getBoundingClientRect();
+        const step = active();
+        const currentPage = page();
+        if (!currentPage) return;
+        if (step.specimen_scope === 'selected_pages') ensureCurrentSelected(step);
+        const current = pagePosition(step, currentPage.page) || {x: 0, y: 0, width: step.width, height: step.height};
+        const position = {
+            ...current,
+            x: Math.floor(Math.max(0, Math.min(currentPage.width - current.width, (event.clientX - bounds.left) / bounds.width * currentPage.width - offset.x)) * 100) / 100,
+            y: Math.floor(Math.max(0, Math.min(currentPage.height - current.height, (event.clientY - bounds.top) / bounds.height * (currentPage.height + footerHeight) - offset.y)) * 100) / 100,
+        };
+        setPagePosition(step, currentPage.page, position);
+        draw();
     };
     preview.addEventListener('load', () => { loaded = true; preview.style.opacity = '1'; draw(); });
     preview.addEventListener('error', () => { loaded = false; draw(); setStatus('Preview gagal dimuat. Muat ulang atau periksa PDF worker.', true); });
@@ -209,15 +291,6 @@ ready(() => {
         else active().specimen_pages = [];
         controls(); draw();
     });
-    const locate = (event, offset = {x: 0, y: 0}) => {
-        const bounds = surface.getBoundingClientRect();
-        const step = active();
-        step.page = Number(pageSelect.value);
-        if (step.specimen_scope === 'selected_pages') ensureCurrentSelected(step);
-        step.x = Math.floor(Math.max(0, Math.min(page().width - step.width, (event.clientX - bounds.left) / bounds.width * page().width - offset.x)) * 100) / 100;
-        step.y = Math.floor(Math.max(0, Math.min(page().height - step.height, (event.clientY - bounds.top) / bounds.height * (page().height + footerHeight) - offset.y)) * 100) / 100;
-        draw();
-    };
     surface.addEventListener('pointerdown', (event) => {
         if (!loaded) return;
         event.preventDefault();
@@ -225,7 +298,9 @@ ready(() => {
         if (block) signerSelect.value = block.dataset.index;
         controls();
         const bounds = surface.getBoundingClientRect();
-        drag = block ? {x: (event.clientX - bounds.left) / bounds.width * page().width - active().x, y: (event.clientY - bounds.top) / bounds.height * (page().height + footerHeight) - active().y} : {x: 0, y: 0};
+        const currentPage = page();
+        const current = pagePosition(active(), currentPage.page) || {x: 0, y: 0};
+        drag = block ? {x: (event.clientX - bounds.left) / bounds.width * currentPage.width - current.x, y: (event.clientY - bounds.top) / bounds.height * (currentPage.height + footerHeight) - current.y} : {x: 0, y: 0};
         surface.setPointerCapture(event.pointerId);
         locate(event, drag);
     });
@@ -238,31 +313,47 @@ ready(() => {
         event.preventDefault();
         signerSelect.value = block.dataset.index;
         const step = active();
-        step.x = Math.max(0, Math.min(page().width - step.width, step.x + (event.key === 'ArrowRight' ? 2 : event.key === 'ArrowLeft' ? -2 : 0)));
-        step.y = Math.max(0, Math.min(page().height - step.height, step.y + (event.key === 'ArrowDown' ? 2 : event.key === 'ArrowUp' ? -2 : 0)));
+        const currentPage = page();
+        const position = pagePosition(step, currentPage.page);
+        position.x = Math.max(0, Math.min(currentPage.width - position.width, position.x + (event.key === 'ArrowRight' ? 2 : event.key === 'ArrowLeft' ? -2 : 0)));
+        position.y = Math.max(0, Math.min(currentPage.height - position.height, position.y + (event.key === 'ArrowDown' ? 2 : event.key === 'ArrowUp' ? -2 : 0)));
+        setPagePosition(step, currentPage.page, position);
         draw();
         blocks.querySelector(`[data-index="${signerSelect.value}"]`)?.focus();
     });
     zoom.addEventListener('change', fit);
     window.addEventListener('resize', fit);
     format.addEventListener('change', () => {
-        active().specimen_format = format.value;
-        const choice = active().layouts[format.value];
+        const step = active();
+        step.specimen_format = format.value;
+        const choice = step.layouts[format.value];
         if (choice && !choice.error) {
-            active().width = choice.width;
-            active().height = choice.height;
-            const placedPage = pages.find(p => p.page === Number(active().page)) || page();
-            if (placedPage && active().x !== null && active().y !== null) {
-                active().x = Math.max(0, Math.min(active().x, placedPage.width - choice.width));
-                active().y = Math.max(0, Math.min(active().y, placedPage.height - choice.height));
-            }
+            step.width = choice.width;
+            step.height = choice.height;
+            const pagesToClamp = step.specimen_scope === 'selected_pages' ? selectedPageNumbers(step) : [Number(step.page) || Number(pageSelect.value)];
+            pagesToClamp.forEach((pageNumber) => {
+                const targetPage = pageByNumber(pageNumber);
+                const position = pagePosition(step, pageNumber);
+                if (!targetPage || !hasCoordinates(position)) return;
+                position.x = Math.max(0, Math.min(position.x, targetPage.width - choice.width));
+                position.y = Math.max(0, Math.min(position.y, targetPage.height - choice.height));
+                position.width = choice.width;
+                position.height = choice.height;
+                setPagePosition(step, pageNumber, position);
+            });
         }
         controls(); draw();
     });
     root.querySelector('[data-reset-position]').addEventListener('click', () => {
-        active().page = Number(pageSelect.value);
-        if (active().specimen_scope === 'selected_pages') ensureCurrentSelected(active());
-        active().x = Math.max(0, (page().width - active().width) / 2); active().y = Math.max(0, (page().height - active().height) / 2); draw();
+        const step = active();
+        const currentPage = page();
+        const position = pagePosition(step, currentPage.page) || {width: step.width, height: step.height};
+        setPagePosition(step, currentPage.page, {
+            ...position,
+            x: Math.max(0, (currentPage.width - position.width) / 2),
+            y: Math.max(0, (currentPage.height - position.height) / 2),
+        });
+        draw();
     });
     form.addEventListener('submit', (event) => {
         if (issues().length || !loaded) {
