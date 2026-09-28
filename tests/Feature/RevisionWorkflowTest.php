@@ -34,6 +34,20 @@ test('rejected document can be opened directly for correction by owner', functio
         );
 });
 
+test('rejected document places one correction action beside document information', function () {
+    $owner = $this->signIn();
+
+    $document = Document::factory()
+        ->rejected('Perbaiki isi dokumen.')
+        ->for($owner, 'owner')
+        ->create();
+
+    $this->get(route('documents.show', $document))
+        ->assertOk()
+        ->assertSeeInOrder(['Informasi Dokumen', 'data-repair-action', 'Perbaiki Dokumen'])
+        ->assertDontSee('Perbaiki Sekarang');
+});
+
 test('saving correction moves rejected document back to draft', function () {
     $owner = $this->signIn();
 

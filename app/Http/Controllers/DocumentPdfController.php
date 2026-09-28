@@ -78,7 +78,7 @@ class DocumentPdfController extends Controller {
             'positions.*.specimen_format' => ['nullable', 'in:framed,qr_2cm,qr_3cm,qr_2x2,qr_3x3'],
             'positions.*.specimen_scope' => ['nullable', 'in:all_pages,selected_pages,selected_page'],
             'positions.*.specimen_pages' => ['nullable', 'array', 'max:100'],
-            'positions.*.specimen_pages.*' => ['integer', 'min:1', 'distinct'],
+            'positions.*.specimen_pages.*' => ['integer', 'min:1'],
             'positions.*.specimen_positions' => ['nullable', 'array', 'max:100'],
             'positions.*.specimen_positions.*.x' => ['required', 'numeric', 'min:0', 'max:2500'],
             'positions.*.specimen_positions.*.y' => ['required', 'numeric', 'min:0', 'max:2500'],
@@ -92,6 +92,14 @@ class DocumentPdfController extends Controller {
             'positions.*.width' => ['required', 'numeric', 'min:1', 'max:400'],
             'positions.*.height' => ['required', 'numeric', 'min:1', 'max:300']
         ]);
+        foreach ($data['positions'] as $index => $position) {
+            $pages = array_map('intval', $position['specimen_pages'] ?? []);
+            if (count($pages) !== count(array_unique($pages))) {
+                throw ValidationException::withMessages([
+                    "positions.{$index}.specimen_pages" => 'Halaman spesimen tidak boleh berulang pada signer yang sama.'
+                ]);
+            }
+        }
         $workflow->place(
             $document,
             $request->user(),

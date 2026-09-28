@@ -196,6 +196,12 @@ test('selected pages persist independent specimen positions and reject a missing
         1 => ['x' => 40, 'y' => 100, 'width' => 56.693, 'height' => 56.693],
         2 => ['x' => 300, 'y' => 500, 'width' => 56.693, 'height' => 56.693],
     ];
+    $positions[1]['specimen_scope'] = 'selected_pages';
+    $positions[1]['specimen_pages'] = [1, 2];
+    $positions[1]['specimen_positions'] = [
+        1 => ['x' => 400, 'y' => 100, 'width' => 56.693, 'height' => 56.693],
+        2 => ['x' => 400, 'y' => 500, 'width' => 56.693, 'height' => 56.693],
+    ];
 
     $this->actingAs($owner)->put(route('documents.pdf.place', $document), [
         'cycle_token' => $cycle->public_id,
@@ -208,6 +214,18 @@ test('selected pages persist independent specimen positions and reject a missing
     expect((float) $saved->specimen_positions['1']['x'])->toBe(40.0);
     expect((float) $saved->specimen_positions['2']['x'])->toBe(300.0);
     expect((float) $saved->x)->toBe(40.0);
+
+    $savedSecond = $document->currentCycle()->signatures()->skip(1)->firstOrFail()->fresh();
+    expect(array_map('intval', $savedSecond->specimen_pages))->toBe([1, 2]);
+
+    $duplicate = $positions;
+    $duplicate[0]['specimen_pages'] = [1, 1];
+    $this->actingAs($owner)->put(route('documents.pdf.place', $document), [
+        'cycle_token' => $cycle->public_id,
+        'source_sha256' => $cycle->original_sha256,
+        'confirmed' => 1,
+        'positions' => $duplicate,
+    ])->assertSessionHasErrors('positions.0.specimen_pages');
 
     $missing = $positions;
     unset($missing[0]['specimen_positions'][2]);

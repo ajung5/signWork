@@ -72,6 +72,7 @@
                 @endif
 
                 @can('update', $document)
+                    @if(!$document->isRejected())
                     <a
                         href="{{ route('documents.edit', $document) }}"
                         @class([
@@ -80,8 +81,9 @@
                             'border-slate-300 bg-white text-slate-700 hover:bg-slate-100' => ! $document->isRejected(),
                         ])
                     >
-                        {{ $document->isRejected() ? 'Perbaiki Dokumen' : 'Edit' }}
+                        Edit
                     </a>
+                    @endif
                 @endcan
             </div>
         </div>
@@ -102,14 +104,6 @@
                         </p>
                     </div>
 
-                    @can('update', $document)
-                        <a
-                            href="{{ route('documents.edit', $document) }}"
-                            class="inline-flex shrink-0 items-center justify-center rounded-lg border border-red-300 bg-red-100 px-4 py-2.5 text-sm font-semibold text-red-800 transition hover:bg-red-200"
-                        >
-                            Perbaiki Sekarang
-                        </a>
-                    @endcan
                 </div>
 
                 @if ($document->rejection_reason)
@@ -167,10 +161,19 @@
         <div class="mt-7 grid gap-6 xl:grid-cols-3">
             <section class="space-y-6 xl:col-span-2">
                 <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                    <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
-                        <h2 class="font-semibold text-slate-900">
-                            Informasi Dokumen
-                        </h2>
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4 sm:px-6">
+                        <h2 class="font-semibold text-slate-900">Informasi Dokumen</h2>
+                        @if($document->isRejected())
+                            @can('update', $document)
+                                <a
+                                    href="{{ route('documents.edit', $document) }}"
+                                    data-repair-action
+                                    class="inline-flex items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800 transition hover:bg-amber-100"
+                                >
+                                    Perbaiki Dokumen
+                                </a>
+                            @endcan
+                        @endif
                     </div>
 
                     <div class="p-5 sm:p-6">
