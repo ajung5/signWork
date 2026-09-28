@@ -128,7 +128,7 @@ test('source tampering stops approval without recording a decision', function ()
 test('an unrelated user cannot view download preview or configure a PDF', function () {
     [$document] = pdfWorkflowFixture();
     $this->actingAs(User::factory()->create());
-    foreach (['documents.show', 'documents.pdf.edit', 'documents.pdf.download'] as $route) {
+    foreach (['documents.show', 'documents.pdf.edit', 'documents.pdf.review', 'documents.pdf.review-file', 'documents.pdf.download'] as $route) {
         $this->get(route($route, $document))->assertForbidden();
     }
     $this->get(route('documents.pdf.preview', [$document, 'page' => 1]))->assertForbidden();
@@ -275,9 +275,15 @@ test('confirmed draft exposes one review position action', function () {
         ->assertOk()
         ->assertSee('Preview read-only')
         ->assertSee('Edit posisi Spesiment')
-        ->assertSee('data-specimen-review')
+        ->assertSee('Preview PDF tahap berjalan')
+        ->assertSee(route('documents.pdf.review-file', $document))
+        ->assertDontSee('Unduh PDF ini')
         ->assertDontSee('Simpan peserta & urutan')
         ->assertDontSee('Konfirmasi seluruh posisi');
+
+    $this->actingAs($owner)->get(route('documents.pdf.review-file', $document))
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf');
 });
 
 test('position review is unavailable before positions are confirmed', function () {

@@ -117,7 +117,6 @@ onReady(() => {
 });
 
 import './pdf-workflow';
-import './pdf-review';
 onReady(() => {
     document.querySelectorAll('[data-single-submit]').forEach(form => form.addEventListener('submit', () => {
         form.querySelector('button[type="submit"],button:not([type])').disabled = true;

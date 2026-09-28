@@ -54,11 +54,53 @@ class DocumentPdfController extends Controller {
         $cycle = $document->currentCycle()?->load('signatures');
         abort_unless($cycle?->original_path && $cycle->positions_confirmed_at, 409, 'Posisi spesimen belum dikonfirmasi.');
 
-        $pages = is_array($cycle->pdf_metadata) ? ($cycle->pdf_metadata['pages'] ?? []) : [];
-        abort_unless($pages !== [], 409, 'Metadata halaman PDF belum tersedia.');
-        $specimenSteps = app(SpecimenTemplate::class)->options($cycle);
+        return view('documents.pdf-review', compact('document', 'cycle'));
+    }
 
-        return view('documents.pdf-review', compact('document', 'cycle', 'pages', 'specimenSteps'));
+    public function reviewFile(Document $document, PdfEngine $pdf): BinaryFileResponse {
+        Gate::authorize('view', $document);
+        $cycle = $document->currentCycle()?->load('signatures');
+        abort_unless($cycle?->original_path && $cycle->positions_confirmed_at, 409, 'Posisi spesimen belum dikonfirmasi.');
+
+        if ($cycle->prepared_path && $cycle->prepared_sha256) {
+            $pdf->ensureHash($cycle->prepared_path, $cycle->prepared_sha256);
+
+            return response()->file($pdf->path($cycle->prepared_path), [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename=SignWork-review.pdf',
+                'Cache-Control' => 'private, no-store',
+                'X-Content-Type-Options' => 'nosniff',
+                'X-Frame-Options' => 'SAMEORIGIN'
+            ]);
+        }
+
+        $pdf->ensureHash($cycle->original_path, $cycle->original_sha256);
+        $path = 'signwork/previews/' . Str::uuid() . '-review.pdf';
+        Storage::disk('local')->makeDirectory('signwork/previews');
+
+        try {
+            $verificationUrl = rtrim((string) config('signwork.verification_base_url'), '/') .
+                route('verification.show', $cycle->public_id, false);
+            $pdf->run('prepare', $cycle->original_path, [
+                'output' => $pdf->path($path),
+                'steps' => $cycle->signatures->toArray(),
+                'verification_url' => $verificationUrl,
+                'specimen_version' => (int) $cycle->specimen_version
+            ]);
+        } catch (\Throwable $error) {
+            Storage::disk('local')->delete($path);
+            throw $error;
+        }
+
+        return response()
+            ->file($pdf->path($path), [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename=SignWork-review.pdf',
+                'Cache-Control' => 'private, no-store',
+                'X-Content-Type-Options' => 'nosniff',
+                'X-Frame-Options' => 'SAMEORIGIN'
+            ])
+            ->deleteFileAfterSend();
     }
 
     public function store(

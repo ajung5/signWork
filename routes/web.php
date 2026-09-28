@@ -117,6 +117,9 @@ Route::middleware(['auth', RecordActivity::class, 'throttle:30,1'])->group(funct
     Route::get('/documents/{document}/pdf-review', [DocumentPdfController::class, 'review'])->name(
         'documents.pdf.review'
     );
+    Route::get('/documents/{document}/pdf-review/file', [DocumentPdfController::class, 'reviewFile'])->name(
+        'documents.pdf.review-file'
+    );
     Route::post('/documents/{document}/pdf-workflow', [DocumentPdfController::class, 'store'])->name(
         'documents.pdf.store'
     );
