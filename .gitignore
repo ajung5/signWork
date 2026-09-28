@@ -49,3 +49,7 @@ ENV/
 
 # Python package build
 *.egg-info/
+
+AGENTS.md
+composer.json
+composer.lock
