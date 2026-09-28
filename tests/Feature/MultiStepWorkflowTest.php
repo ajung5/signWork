@@ -71,7 +71,7 @@ test('full workflow runs two approvals and two mock signatures and verifies the 
         ->assertOk()
         ->assertSee('Preview dokumen dan posisi spesimen')
         ->assertSee('Preview PDF tahap berjalan')
-        ->assertSee('Buka verifikasi QR')
+        ->assertDontSee('Buka verifikasi QR')
         ->assertDontSee('Preview dokumen tahap ini')
         ->assertDontSee('Preview dokumen sumber');
     $this->actingAs($approvers[1])->post(route('documents.approve', $document), ['cycle_token' => $token])->assertForbidden();
@@ -87,6 +87,9 @@ test('full workflow runs two approvals and two mock signatures and verifies the 
     $this->actingAs($signers[1])->post(route('documents.sign', $document), ['cycle_token' => $token, 'mock_acknowledged' => 1, 'passphrase' => 'MOCK-SIGNWORK-2026'])->assertSessionHasNoErrors();
     $cycle->refresh();
     expect($document->fresh()->status)->toBe(DocumentStatus::Signed);
+    $this->actingAs($owner)->get(route('documents.show', $document))
+        ->assertOk()
+        ->assertSee('Buka verifikasi QR');
     expect(hash_file('sha256', Storage::disk('local')->path($cycle->current_path)))->toBe($cycle->final_sha256);
     $steps = $cycle->signatures()->get();
     expect($steps[1]->input_sha256)->toBe($steps[0]->output_sha256);

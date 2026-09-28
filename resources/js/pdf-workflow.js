@@ -184,27 +184,49 @@ ready(() => {
         if (pages.length === 2) return `${pages[0]} dan ${pages[1]}`;
         return `${pages.slice(0, -1).join(', ')}, dan ${pages.at(-1)}`;
     };
-    const issues = () => {
+    const collectIssues = () => {
         const missingBySigner = new Map();
         const problems = [];
+        let missingCount = 0;
+        let invalidCount = 0;
+        let configurationCount = 0;
         steps.forEach((step, i) => {
             const choice = step.layouts[step.specimen_format];
-            if (!choice || choice.error) { problems.push(`Signer ${i + 1} (${step.name_snapshot}): ${choice?.error || 'Pilih format spesimen'}`); return; }
+            if (!choice || choice.error) {
+                configurationCount += 1;
+                problems.push(`Signer ${i + 1} (${step.name_snapshot}): ${choice?.error || 'Pilih format spesimen'}`);
+                return;
+            }
             const targetPageNumbers = selectedPageNumbers(step);
             if (step.specimen_scope === 'selected_pages' && targetPageNumbers.length === 0) { problems.push(`Signer ${i + 1}: pilih minimal satu halaman`); return; }
             targetPageNumbers.forEach((pageNumber) => {
                 const status = positionStatus(step, i, pageNumber);
                 if (status.state === 'missing') {
+                    missingCount += 1;
                     const pages = missingBySigner.get(i) || [];
                     pages.push(pageNumber);
                     missingBySigner.set(i, pages);
-                } else if (status.message) problems.push(status.message);
+                } else if (status.message) {
+                    invalidCount += 1;
+                    problems.push(status.message);
+                }
             });
         });
         const missing = [...missingBySigner.entries()].map(([index, pageNumbers]) =>
             `Signer ${index + 1}: posisi belum ditentukan pada halaman ${formatPageList(pageNumbers)}`
         );
-        return [...missing, ...new Set(problems)];
+        return {
+            messages: [...missing, ...new Set(problems)],
+            missingCount,
+            invalidCount,
+            configurationCount,
+        };
+    };
+    const issueSummary = ({missingCount, invalidCount, configurationCount}) => {
+        if (missingCount) return `Posisi QR belum lengkap: ${missingCount} penempatan perlu ditentukan. Buka checklist di bawah untuk melihat signer dan halaman.`;
+        if (invalidCount) return `Ada ${invalidCount} penempatan QR yang perlu diperbaiki. Buka checklist di bawah untuk melihat halaman bermasalah.`;
+        if (configurationCount) return 'Format spesimen atau profil signer belum siap. Periksa data signer dan format spesimen.';
+        return 'Periksa kembali data penempatan QR.';
     };
     const checklistStyles = {
         complete: 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100',
@@ -317,9 +339,9 @@ ready(() => {
             block.setAttribute('aria-label', `Geser blok ${step.name_snapshot} pada halaman ${pageSelect.value}`);
             blocks.append(block);
         });
-        const problems = issues();
-        setStatus(problems.length ? problems.join(' · ') : loaded ? 'Posisi lengkap dan tidak bertumpuk. Periksa isi surat sebelum konfirmasi.' : 'Memuat preview halaman…', problems.length > 0);
-        root.querySelector('[data-confirm-positions]').disabled = problems.length > 0 || !loaded;
+        const validation = collectIssues();
+        setStatus(validation.messages.length ? issueSummary(validation) : loaded ? 'Semua posisi QR lengkap. Periksa dokumen, lalu konfirmasi.' : 'Memuat preview halaman…', validation.messages.length > 0);
+        root.querySelector('[data-confirm-positions]').disabled = validation.messages.length > 0 || !loaded;
         const progress = root.querySelector('[data-signer-progress]');
         progress.replaceChildren();
         steps.forEach((step, i) => {
@@ -490,9 +512,10 @@ ready(() => {
         draw();
     });
     form.addEventListener('submit', (event) => {
-        if (issues().length || !loaded) {
+        const validation = collectIssues();
+        if (validation.messages.length || !loaded) {
             event.preventDefault();
-            setStatus(issues().join(' · ') || 'Tunggu preview selesai dimuat.', true);
+            setStatus(validation.messages.length ? issueSummary(validation) : 'Tunggu preview selesai dimuat.', true);
         }
     });
     fit();

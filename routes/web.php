@@ -68,17 +68,17 @@ Route::middleware(['auth', RecordActivity::class])->group(function (): void {
 
     Route::get('/master/workflow/{workflowMasterEntry}/edit', [
         DocumentWorkflowSettingController::class,
-        'editEntry',
+        'editEntry'
     ])->name('workflow-settings.entry.edit');
 
     Route::put('/master/workflow/{workflowMasterEntry}', [
         DocumentWorkflowSettingController::class,
-        'updateEntry',
+        'updateEntry'
     ])->name('workflow-settings.entry.update');
 
     Route::delete('/master/workflow/{workflowMasterEntry}', [
         DocumentWorkflowSettingController::class,
-        'destroyEntry',
+        'destroyEntry'
     ])->name('workflow-settings.entry.destroy');
 
     Route::post('/documents/{document}/submit', [DocumentWorkflowController::class, 'submit'])->name(

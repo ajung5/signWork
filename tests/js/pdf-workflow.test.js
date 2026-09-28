@@ -83,7 +83,7 @@ test('missing profile explains disabled confirmation without emitting a broken i
     ui.fire('page-image', 'load');
     ui.select('framed');
     assert.equal(ui.field('confirm-positions').disabled, true);
-    for (const status of ui.statuses) assert.match(status.textContent, /Rizky Hidayat.*pangkat/);
+    for (const status of ui.statuses) assert.match(status.textContent, /Format spesimen atau profil signer belum siap/);
     assert.equal(ui.field('blocks').children[0].children.length, 0);
     ui.select('qr_2cm');
     assert.equal(ui.field('confirm-positions').disabled, false);
@@ -96,12 +96,20 @@ test('overlapping frames and pages narrower than the frame still block confirmat
     assert.equal(overlap.field('confirm-positions').disabled, false);
     overlap.select('framed');
     assert.equal(overlap.field('confirm-positions').disabled, true);
-    assert.match(overlap.statuses[1].textContent, /bertumpuk/);
+    assert.match(overlap.statuses[1].textContent, /penempatan QR yang perlu diperbaiki/);
+    const overlapChips = overlap.field('page-checklist').children
+        .flatMap((card) => card.children[1]?.children ?? []);
+    assert.match(overlapChips.map((chip) => chip.textContent).join(' '), /Halaman 1 · perlu diperbaiki/);
+    assert.match(overlapChips.map((chip) => chip.title).join(' '), /bertumpuk/);
     const narrow = editor({ x: 10, y: 10, pageWidth: 200 });
     narrow.fire('page-image', 'load');
     narrow.select('framed');
     assert.equal(narrow.field('confirm-positions').disabled, true);
-    assert.match(narrow.statuses[1].textContent, /keluar batas/);
+    assert.match(narrow.statuses[1].textContent, /penempatan QR yang perlu diperbaiki/);
+    const narrowChips = narrow.field('page-checklist').children
+        .flatMap((card) => card.children[1]?.children ?? []);
+    assert.match(narrowChips.map((chip) => chip.textContent).join(' '), /Halaman 1 · perlu diperbaiki/);
+    assert.match(narrowChips.map((chip) => chip.title).join(' '), /keluar batas/);
 });
 
 test('failed PDF preview disables confirmation and displays a recovery message', () => {
@@ -138,7 +146,7 @@ test('selected-pages scope accepts multiple page checkboxes and submits them', (
         .filter((input) => input.name === 'positions[0][specimen_pages][]')
         .map((input) => Number(input.value));
     assert.deepEqual(selected, [1, 3]);
-    assert.match(ui.statuses[1].textContent, /Posisi lengkap/);
+    assert.match(ui.statuses[1].textContent, /Semua posisi QR lengkap/);
 });
 
 test('selected-pages preview remembers the page being positioned per signer', () => {
@@ -183,6 +191,7 @@ test('position errors group missing pages by signer', () => {
     const ui = editor({ missingPages: [2, 3] });
     ui.fire('page-image', 'load');
 
-    assert.match(ui.statuses[1].textContent, /Signer 1: posisi belum ditentukan pada halaman 2 dan 3/);
-    assert.doesNotMatch(ui.statuses[1].textContent, /halaman 2 ·/);
+    assert.match(ui.statuses[1].textContent, /Posisi QR belum lengkap: 2 penempatan perlu ditentukan/);
+    assert.match(ui.field('page-checklist').children[0].children[1].children[1].textContent, /Halaman 2 · belum ditempatkan/);
+    assert.match(ui.field('page-checklist').children[0].children[1].children[2].textContent, /Halaman 3 · belum ditempatkan/);
 });

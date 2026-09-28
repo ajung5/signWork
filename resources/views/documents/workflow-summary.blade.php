@@ -42,7 +42,7 @@
                 </div>
             </div>
         @endif
-        @if($cycle->submitted_at)
+        @if($document->isSigned())
             <div class="flex flex-wrap items-center gap-3 text-sm">
                 <a href="{{ route('verification.show', $cycle->public_id) }}" class="preview-action">Buka verifikasi QR</a>
             </div>

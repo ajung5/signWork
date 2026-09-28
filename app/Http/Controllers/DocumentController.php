@@ -18,10 +18,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Throwable;
 
-class DocumentController extends Controller
-{
-    public function index(Request $request): View
-    {
+class DocumentController extends Controller {
+    public function index(Request $request): View {
         Gate::authorize('viewAny', Document::class);
 
         $documents = Document::query()
@@ -31,12 +29,11 @@ class DocumentController extends Controller
             ->paginate(10);
 
         return view('documents.index', [
-            'documents' => $documents,
+            'documents' => $documents
         ]);
     }
 
-    public function create(Request $request): View
-    {
+    public function create(Request $request): View {
         Gate::authorize('create', Document::class);
 
         $owner = $request->user();
@@ -48,13 +45,12 @@ class DocumentController extends Controller
             'defaults' => [
                 'destination_user_id' => $this->defaultTargetId($owner, WorkflowMasterType::Destination),
                 'approver_id' => $this->defaultTargetId($owner, WorkflowMasterType::Approver),
-                'signer_id' => $this->defaultTargetId($owner, WorkflowMasterType::Signer),
-            ],
+                'signer_id' => $this->defaultTargetId($owner, WorkflowMasterType::Signer)
+            ]
         ]);
     }
 
-    public function store(StoreDocumentRequest $request, DocumentWorkflow $workflow): RedirectResponse
-    {
+    public function store(StoreDocumentRequest $request, DocumentWorkflow $workflow): RedirectResponse {
         Gate::authorize('create', Document::class);
 
         $validated = $request->validated();
@@ -76,8 +72,7 @@ class DocumentController extends Controller
         return redirect()->route('documents.index')->with('success', 'Draft dan dokumen sumber berhasil disimpan.');
     }
 
-    public function show(Document $document): View
-    {
+    public function show(Document $document): View {
         Gate::authorize('view', $document);
 
         $document->load(['owner', 'destination', 'approver', 'signer']);
@@ -101,12 +96,11 @@ class DocumentController extends Controller
             'cycles' => $document
                 ->cycles()
                 ->with(['approvals', 'signatures'])
-                ->get(),
+                ->get()
         ]);
     }
 
-    public function edit(Document $document): View
-    {
+    public function edit(Document $document): View {
         Gate::authorize('update', $document);
 
         $document->load(['owner', 'destination', 'approver', 'signer']);
@@ -119,7 +113,7 @@ class DocumentController extends Controller
                 $document->destination
             ),
             'approverUsers' => $this->masterUsers($document->owner, WorkflowMasterType::Approver, $document->approver),
-            'signerUsers' => $this->masterUsers($document->owner, WorkflowMasterType::Signer, $document->signer),
+            'signerUsers' => $this->masterUsers($document->owner, WorkflowMasterType::Signer, $document->signer)
         ]);
     }
 
@@ -157,8 +151,7 @@ class DocumentController extends Controller
             );
     }
 
-    public function destroy(Document $document): RedirectResponse
-    {
+    public function destroy(Document $document): RedirectResponse {
         Gate::authorize('delete', $document);
 
         $paths = DB::transaction(function () use ($document): array {
@@ -167,7 +160,7 @@ class DocumentController extends Controller
             $paths = $locked
                 ->cycles()
                 ->get()
-                ->flatMap(fn ($cycle) => [$cycle->original_path, $cycle->source_path])
+                ->flatMap(fn($cycle) => [$cycle->original_path, $cycle->source_path])
                 ->filter()
                 ->unique()
                 ->all();
@@ -180,8 +173,7 @@ class DocumentController extends Controller
         return redirect()->route('documents.index')->with('success', 'Dokumen berhasil dihapus.');
     }
 
-    private function masterUsers(User $owner, WorkflowMasterType $type, ?User $current = null): Collection
-    {
+    private function masterUsers(User $owner, WorkflowMasterType $type, ?User $current = null): Collection {
         $users = User::query()
             ->whereIn(
                 'id',
@@ -190,15 +182,14 @@ class DocumentController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'email']);
 
-        if ($current !== null && ! $users->contains('id', $current->id)) {
+        if ($current !== null && !$users->contains('id', $current->id)) {
             $users->push($current);
         }
 
         return $users->sortBy('name')->values();
     }
 
-    private function defaultTargetId(User $owner, WorkflowMasterType $type): ?int
-    {
+    private function defaultTargetId(User $owner, WorkflowMasterType $type): ?int {
         $entry = $owner
             ->workflowMasterEntries()
             ->where('type', $type->value)
