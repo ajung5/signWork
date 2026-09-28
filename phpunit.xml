@@ -8,6 +8,7 @@
         <testsuite name="Unit">
             <directory>tests/Unit</directory>
         </testsuite>
+
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
@@ -17,18 +18,35 @@
             <directory>app</directory>
         </include>
     </source>
+
+    <!--
+        Test environment.
+
+        All values below are forced so phpunit cannot accidentally use the
+        local .env configuration, especially the MySQL development database.
+        The test database is temporary SQLite memory storage.
+    -->
     <php>
         <env name="APP_ENV" value="testing" force="true"/>
+        <env name="APP_DEBUG" value="false" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
+
         <env name="BCRYPT_ROUNDS" value="4" force="true"/>
         <env name="BROADCAST_CONNECTION" value="null" force="true"/>
-        <env name="CACHE_STORE" value="array" force="true"/>
+
+        <!-- Never use the MySQL development database during tests. -->
         <env name="DB_CONNECTION" value="sqlite" force="true"/>
         <env name="DB_DATABASE" value=":memory:" force="true"/>
         <env name="DB_URL" value="" force="true"/>
+        <env name="DB_FOREIGN_KEYS" value="true" force="true"/>
+
+        <env name="CACHE_STORE" value="array" force="true"/>
+        <env name="FILESYSTEM_DISK" value="local" force="true"/>
         <env name="MAIL_MAILER" value="array" force="true"/>
         <env name="QUEUE_CONNECTION" value="sync" force="true"/>
         <env name="SESSION_DRIVER" value="array" force="true"/>
+
+        <!-- Disable optional Laravel monitoring integrations in tests. -->
         <env name="PULSE_ENABLED" value="false" force="true"/>
         <env name="TELESCOPE_ENABLED" value="false" force="true"/>
         <env name="NIGHTWATCH_ENABLED" value="false" force="true"/>
