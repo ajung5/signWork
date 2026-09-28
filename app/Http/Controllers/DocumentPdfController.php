@@ -49,6 +49,18 @@ class DocumentPdfController extends Controller {
         return view('documents.pdf-workflow', compact('document', 'cycle', 'participants', 'specimenSteps'));
     }
 
+    public function review(Document $document): View {
+        Gate::authorize('view', $document);
+        $cycle = $document->currentCycle()?->load('signatures');
+        abort_unless($cycle?->original_path && $cycle->positions_confirmed_at, 409, 'Posisi spesimen belum dikonfirmasi.');
+
+        $pages = is_array($cycle->pdf_metadata) ? ($cycle->pdf_metadata['pages'] ?? []) : [];
+        abort_unless($pages !== [], 409, 'Metadata halaman PDF belum tersedia.');
+        $specimenSteps = app(SpecimenTemplate::class)->options($cycle);
+
+        return view('documents.pdf-review', compact('document', 'cycle', 'pages', 'specimenSteps'));
+    }
+
     public function store(
         ConfigureDocumentWorkflowRequest $request,
         Document $document,

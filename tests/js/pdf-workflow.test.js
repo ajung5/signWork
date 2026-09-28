@@ -27,14 +27,18 @@ class Element {
     setAttribute() {}
 }
 
-function editor({ error = null, x = 500, y = 720, extraStep = false, pageWidth = 595 } = {}) {
+function editor({ error = null, x = 500, y = 720, extraStep = false, pageWidth = 595, missingPages = [] } = {}) {
     const layouts = {
         qr_2cm: { width: 56.693, height: 56.693, preview: 'data:image/png;base64,qr' },
         qr_3cm: { width: 85.039, height: 85.039, preview: 'data:image/png;base64,qr3' },
         framed: error ? { error } : { width: 297.638, height: 133, preview: 'data:image/png;base64,frame' },
     };
     const steps = [{ id: 1, name_snapshot: 'Rizky Hidayat', page: 1, x, y,
-        width: 56.693, height: 56.693, specimen_format: 'qr_2cm', specimen_scope: 'all_pages', profile_fingerprint: 'hash', layouts }];
+        width: 56.693, height: 56.693, specimen_format: 'qr_2cm',
+        specimen_scope: missingPages.length ? 'selected_pages' : 'all_pages',
+        specimen_pages: missingPages.length ? [1, 2, 3] : undefined,
+        specimen_positions: missingPages.length ? { 1: { x, y, width: 56.693, height: 56.693 } } : undefined,
+        profile_fingerprint: 'hash', layouts }];
     if (extraStep) steps.push({ ...steps[0], id: 2, name_snapshot: 'Signer Dua', x: 350, y: 100 });
     const fields = Object.fromEntries(['active-signer', 'scope', 'page', 'page-surface', 'page-image', 'blocks',
         'position-inputs', 'position-form', 'zoom', 'preview-scroll', 'format', 'page-picker', 'confirm-positions',
@@ -173,4 +177,12 @@ test('page checklist identifies missing and completed positions', () => {
     ui.fire('reset-position', 'click');
     assert.match(ui.field('checklist-summary').textContent, /2\/2 halaman lengkap/);
     assert.match(ui.field('page-checklist').children[0].children[1].children[1].textContent, /Halaman 3 · lengkap/);
+});
+
+test('position errors group missing pages by signer', () => {
+    const ui = editor({ missingPages: [2, 3] });
+    ui.fire('page-image', 'load');
+
+    assert.match(ui.statuses[1].textContent, /Signer 1: posisi belum ditentukan pada halaman 2 dan 3/);
+    assert.doesNotMatch(ui.statuses[1].textContent, /halaman 2 ·/);
 });

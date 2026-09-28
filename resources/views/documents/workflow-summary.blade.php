@@ -3,11 +3,11 @@
         <h2 class="font-semibold">PDF & Alur Berurutan</h2>
         @can('update', $document)
             @if($document->isDraft())
-                <a href="{{ route('documents.pdf.edit', $document) }}" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">
+                <a href="{{ $cycle && $cycle->positions_confirmed_at ? route('documents.pdf.review', $document) : route('documents.pdf.edit', $document) }}" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">
                     @if(!$cycle)
                         Atur PDF & peserta
                     @elseif($cycle->positions_confirmed_at)
-                        Tinjau posisi QR
+                        Tinjau posisi Spesiment
                     @else
                         Lengkapi posisi QR
                     @endif
@@ -31,15 +31,17 @@
                 : ($previewVersion === 'current' ? 'Preview PDF tahap berjalan' : 'Preview dokumen sumber');
         @endphp
         <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Provider: MOCK — simulasi, bukan TTE BSrE yang sah. QR membandingkan hash file; bukan validasi sertifikat elektronik.</p>
-        <div class="rounded-xl border border-blue-200 bg-blue-50 p-4">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h3 class="font-semibold text-blue-900">Preview dokumen dan posisi spesimen</h3>
-                    <p class="mt-1 text-sm text-blue-800">Setiap tahap workflow dapat memeriksa PDF yang sedang berjalan dan posisi specimen QR yang akan digunakan.</p>
+        @if(!$document->isDraft() || !$cycle->positions_confirmed_at)
+            <div class="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h3 class="font-semibold text-blue-900">Preview dokumen dan posisi spesimen</h3>
+                        <p class="mt-1 text-sm text-blue-800">Setiap tahap workflow dapat memeriksa PDF yang sedang berjalan dan posisi specimen QR yang akan digunakan.</p>
+                    </div>
+                    <a href="{{ route('documents.pdf.viewer', [$document, 'version' => $previewVersion]) }}" class="inline-flex shrink-0 items-center justify-center rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">{{ $previewLabel }}</a>
                 </div>
-                <a href="{{ route('documents.pdf.viewer', [$document, 'version' => $previewVersion]) }}" class="inline-flex shrink-0 items-center justify-center rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">{{ $previewLabel }}</a>
             </div>
-        </div>
+        @endif
         @if($cycle->submitted_at)
             <div class="flex flex-wrap items-center gap-3 text-sm">
                 <a href="{{ route('verification.show', $cycle->public_id) }}" class="preview-action">Buka verifikasi QR</a>
@@ -50,7 +52,7 @@
             @if($cycle->positions_confirmed_at)
                 <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                     <p class="font-semibold text-emerald-900">Siap diajukan</p>
-                    <p class="mt-1 text-sm text-emerald-800">Peserta dan posisi spesimen sudah dikonfirmasi. Periksa preview terakhir atau gunakan tombol <span class="font-semibold">Tinjau posisi QR</span> di header.</p>
+                    <p class="mt-1 text-sm text-emerald-800">Peserta dan posisi spesimen sudah dikonfirmasi. Gunakan tombol <span class="font-semibold">Tinjau posisi Spesiment</span> di header untuk melihat posisi tersimpan, atau pilih edit untuk mengubahnya.</p>
                 </div>
             @else
                 <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">

@@ -178,7 +178,14 @@ ready(() => {
         }
         return { state: 'complete', label: 'lengkap', message: null };
     };
+    const formatPageList = (pageNumbers) => {
+        const pages = [...new Set(pageNumbers)].sort((a, b) => a - b).map(String);
+        if (pages.length < 2) return pages[0] || '';
+        if (pages.length === 2) return `${pages[0]} dan ${pages[1]}`;
+        return `${pages.slice(0, -1).join(', ')}, dan ${pages.at(-1)}`;
+    };
     const issues = () => {
+        const missingBySigner = new Map();
         const problems = [];
         steps.forEach((step, i) => {
             const choice = step.layouts[step.specimen_format];
@@ -187,10 +194,17 @@ ready(() => {
             if (step.specimen_scope === 'selected_pages' && targetPageNumbers.length === 0) { problems.push(`Signer ${i + 1}: pilih minimal satu halaman`); return; }
             targetPageNumbers.forEach((pageNumber) => {
                 const status = positionStatus(step, i, pageNumber);
-                if (status.message) problems.push(status.message);
+                if (status.state === 'missing') {
+                    const pages = missingBySigner.get(i) || [];
+                    pages.push(pageNumber);
+                    missingBySigner.set(i, pages);
+                } else if (status.message) problems.push(status.message);
             });
         });
-        return [...new Set(problems)];
+        const missing = [...missingBySigner.entries()].map(([index, pageNumbers]) =>
+            `Signer ${index + 1}: posisi belum ditentukan pada halaman ${formatPageList(pageNumbers)}`
+        );
+        return [...missing, ...new Set(problems)];
     };
     const checklistStyles = {
         complete: 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100',

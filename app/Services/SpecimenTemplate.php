@@ -26,7 +26,9 @@ class SpecimenTemplate
     public function options(DocumentCycle $cycle, bool $previews = true): array
     {
         $steps = $cycle->signatures()->with('user')->get()->map(function ($step): array {
-            $profile = $this->profile($step->user);
+            $profile = is_array($step->profile_snapshot) && $step->profile_snapshot !== []
+                ? $step->profile_snapshot
+                : $this->profile($step->user);
 
             return [...$step->only(['id', 'sequence', 'name_snapshot', 'placeholder', 'placement_source', 'page', 'x', 'y', 'width', 'height', 'specimen_format', 'specimen_scope', 'specimen_pages', 'specimen_positions']), 'profile_snapshot' => $profile, 'profile_fingerprint' => $this->fingerprint($profile)];
         });

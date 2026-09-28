@@ -247,8 +247,9 @@ test('draft PDF workflow guides the owner to confirm positions before submit', f
         ->assertOk()
         ->assertSee('Draft belum siap diajukan')
         ->assertSee('Lengkapi posisi QR')
+        ->assertSee('Preview dokumen sumber')
         ->assertDontSee('Atur PDF & posisi QR')
-        ->assertDontSee('Tinjau posisi</a>')
+        ->assertDontSee('Tinjau posisi Spesiment')
         ->assertDontSee('Ajukan Dokumen');
 
     expect(substr_count($response->getContent(), route('documents.pdf.edit', $document)))->toBe(1);
@@ -262,11 +263,28 @@ test('confirmed draft exposes one review position action', function () {
     $response
         ->assertOk()
         ->assertSee('Siap diajukan')
-        ->assertSee('Tinjau posisi QR')
+        ->assertSee('Tinjau posisi Spesiment')
+        ->assertSee(route('documents.pdf.review', $document))
+        ->assertDontSee('Preview dokumen sumber')
         ->assertDontSee('Atur PDF & posisi QR')
-        ->assertDontSee('>Tinjau posisi</a>');
+        ->assertDontSee(route('documents.pdf.edit', $document));
 
-    expect(substr_count($response->getContent(), route('documents.pdf.edit', $document)))->toBe(1);
+    expect(substr_count($response->getContent(), route('documents.pdf.review', $document)))->toBe(1);
+
+    $this->actingAs($owner)->get(route('documents.pdf.review', $document))
+        ->assertOk()
+        ->assertSee('Preview read-only')
+        ->assertSee('Edit posisi Spesiment')
+        ->assertSee('data-specimen-review')
+        ->assertDontSee('Simpan peserta & urutan')
+        ->assertDontSee('Konfirmasi seluruh posisi');
+});
+
+test('position review is unavailable before positions are confirmed', function () {
+    [$document, $owner] = pdfWorkflowFixture();
+    $document->currentCycle()->update(['positions_confirmed_at' => null]);
+
+    $this->actingAs($owner)->get(route('documents.pdf.review', $document))->assertStatus(409);
 });
 
 test('newly created documents save the PDF workflow before redirecting to the document list', function () {
