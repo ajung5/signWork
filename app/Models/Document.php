@@ -11,7 +11,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use LogicException;
 
-class Document extends Model {
+class Document extends Model
+{
     /** @use HasFactory<DocumentFactory> */
     use HasFactory;
 
@@ -33,16 +34,18 @@ class Document extends Model {
         'revision_count',
         'last_revised_at',
         'signed_at',
-        'requires_pdf_workflow'
+        'requires_pdf_workflow',
     ];
 
-    protected static function booted(): void {
+    protected static function booted(): void
+    {
         static::creating(function (Document $document): void {
             $document->uuid ??= (string) Str::uuid();
         });
     }
 
-    protected function casts(): array {
+    protected function casts(): array
+    {
         return [
             'status' => DocumentStatus::class,
             'submitted_at' => 'datetime',
@@ -55,56 +58,67 @@ class Document extends Model {
             'sent_at' => 'datetime',
             'revision_count' => 'integer',
             'workflow_cycle' => 'integer',
-            'requires_pdf_workflow' => 'boolean'
+            'requires_pdf_workflow' => 'boolean',
         ];
     }
 
-    public function getRouteKeyName(): string {
+    public function getRouteKeyName(): string
+    {
         return 'uuid';
     }
 
-    public function isDraft(): bool {
+    public function isDraft(): bool
+    {
         return $this->status === DocumentStatus::Draft;
     }
 
-    public function isSubmitted(): bool {
+    public function isSubmitted(): bool
+    {
         return $this->status === DocumentStatus::Submitted;
     }
 
-    public function isWaitingApproval(): bool {
+    public function isWaitingApproval(): bool
+    {
         return $this->status === DocumentStatus::WaitingApproval;
     }
 
-    public function isApproved(): bool {
+    public function isApproved(): bool
+    {
         return $this->status === DocumentStatus::Approved;
     }
 
-    public function isRejected(): bool {
+    public function isRejected(): bool
+    {
         return $this->status === DocumentStatus::Rejected;
     }
 
-    public function isWaitingSignature(): bool {
+    public function isWaitingSignature(): bool
+    {
         return $this->status === DocumentStatus::WaitingSignature;
     }
 
-    public function isSigning(): bool {
+    public function isSigning(): bool
+    {
         return $this->status === DocumentStatus::Signing;
     }
 
-    public function isSigned(): bool {
+    public function isSigned(): bool
+    {
         return $this->status === DocumentStatus::Signed;
     }
 
-    public function isSignFailed(): bool {
+    public function isSignFailed(): bool
+    {
         return $this->status === DocumentStatus::SignFailed;
     }
 
-    public function submit(): void {
+    public function submit(): void
+    {
         if ($this->requires_pdf_workflow || $this->workflow_cycle > 0) {
             throw new LogicException('PDF workflow must be submitted through DocumentWorkflow.');
         }
 
-        if (!$this->isDraft()) {
+        if (! $this->isDraft()) {
             throw new LogicException('Only draft documents can be submitted.');
         }
 
@@ -120,8 +134,9 @@ class Document extends Model {
         $this->save();
     }
 
-    public function assignApprover(User $approver): void {
-        if (!$this->isSubmitted()) {
+    public function assignApprover(User $approver): void
+    {
+        if (! $this->isSubmitted()) {
             throw new LogicException('Approver can only be assigned to submitted documents.');
         }
 
@@ -132,7 +147,8 @@ class Document extends Model {
         $this->save();
     }
 
-    public function approveBy(User $approver): void {
+    public function approveBy(User $approver): void
+    {
         $this->ensureDecisionCanBeMadeBy($approver);
 
         $this->approved_at = now();
@@ -149,7 +165,8 @@ class Document extends Model {
         $this->save();
     }
 
-    public function rejectBy(User $approver, string $reason): void {
+    public function rejectBy(User $approver, string $reason): void
+    {
         $this->ensureDecisionCanBeMadeBy($approver);
 
         $this->status = DocumentStatus::Rejected;
@@ -161,8 +178,9 @@ class Document extends Model {
         $this->save();
     }
 
-    public function revise(): void {
-        if (!$this->isRejected()) {
+    public function revise(): void
+    {
+        if (! $this->isRejected()) {
             throw new LogicException('Only rejected documents can enter revision.');
         }
 
@@ -179,8 +197,9 @@ class Document extends Model {
         $this->save();
     }
 
-    public function assignSigner(User $signer): void {
-        if (!$this->isApproved()) {
+    public function assignSigner(User $signer): void
+    {
+        if (! $this->isApproved()) {
             throw new LogicException('Signer can only be assigned to approved documents.');
         }
 
@@ -191,32 +210,39 @@ class Document extends Model {
         $this->save();
     }
 
-    public function cycles(): HasMany {
+    public function cycles(): HasMany
+    {
         return $this->hasMany(DocumentCycle::class)->orderBy('number');
     }
 
-    public function currentCycle(): ?DocumentCycle {
+    public function currentCycle(): ?DocumentCycle
+    {
         return $this->cycles()->where('number', $this->workflow_cycle)->first();
     }
 
-    public function owner(): BelongsTo {
+    public function owner(): BelongsTo
+    {
         return $this->belongsTo(User::class, 'owner_id');
     }
 
-    public function destination(): BelongsTo {
+    public function destination(): BelongsTo
+    {
         return $this->belongsTo(User::class, 'destination_user_id');
     }
 
-    public function approver(): BelongsTo {
+    public function approver(): BelongsTo
+    {
         return $this->belongsTo(User::class, 'approver_id');
     }
 
-    public function signer(): BelongsTo {
+    public function signer(): BelongsTo
+    {
         return $this->belongsTo(User::class, 'signer_id');
     }
 
-    private function ensureDecisionCanBeMadeBy(User $approver): void {
-        if (!$this->isWaitingApproval()) {
+    private function ensureDecisionCanBeMadeBy(User $approver): void
+    {
+        if (! $this->isWaitingApproval()) {
             throw new LogicException('Approval decision can only be made while waiting for approval.');
         }
 
