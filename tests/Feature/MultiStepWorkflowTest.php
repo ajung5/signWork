@@ -59,7 +59,10 @@ test('full workflow runs two approvals and two mock signatures and verifies the 
     $this->actingAs($owner)->get(route('documents.show', $document))
         ->assertOk()
         ->assertSee('Preview dokumen dan posisi spesimen')
-        ->assertSee('Preview PDF tahap berjalan');
+        ->assertSee('Preview PDF tahap berjalan')
+        ->assertSee('Buka verifikasi QR')
+        ->assertDontSee('Preview dokumen tahap ini')
+        ->assertDontSee('Preview dokumen sumber');
     $this->actingAs($approvers[1])->post(route('documents.approve', $document), ['cycle_token' => $token])->assertForbidden();
     foreach ($approvers as $approver) {
         $this->actingAs($approver)->post(route('documents.approve', $document), ['cycle_token' => $token])->assertSessionHasNoErrors();

@@ -28,12 +28,11 @@
                 <a href="{{ route('documents.pdf.viewer', [$document, 'version' => $previewVersion]) }}" class="inline-flex shrink-0 items-center justify-center rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">{{ $previewLabel }}</a>
             </div>
         </div>
-        <div class="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-3">
-            <a href="{{ route('documents.pdf.viewer', $document) }}" class="preview-action">Preview dokumen sumber</a>
-            @if($cycle->current_path && $cycle->status !== 'signed')<a href="{{ route('documents.pdf.viewer', [$document, 'version' => 'current']) }}" class="preview-action">Preview PDF siap signing / tahap terakhir</a>@endif
-            @if($cycle->status === 'signed')<a href="{{ route('documents.pdf.viewer', [$document, 'version' => 'final']) }}" class="preview-action">Preview PDF final simulasi</a>@endif
-            @if($cycle->submitted_at)<a href="{{ route('verification.show', $cycle->public_id) }}" class="preview-action">Halaman verifikasi QR</a>@endif
-        </div>
+        @if($cycle->submitted_at)
+            <div class="flex flex-wrap items-center gap-3 text-sm">
+                <a href="{{ route('verification.show', $cycle->public_id) }}" class="preview-action">Buka verifikasi QR</a>
+            </div>
+        @endif
         <p class="break-all text-xs text-slate-500">Siklus {{ $cycle->number }} · SHA-256 sumber: {{ $cycle->original_sha256 }}</p>
         @if($document->isDraft())
             @if($cycle->positions_confirmed_at)
@@ -63,7 +62,6 @@
                 <div><h3 class="mb-2 text-sm font-semibold">{{ $label }}</h3><ol class="space-y-2 text-sm">
                     @foreach($cycle->$relation as $step)
                         <li class="rounded-xl border border-slate-200 bg-slate-50 p-4"><div class="flex flex-wrap items-center justify-between gap-3"><span class="font-medium">{{ $step->sequence }}. {{ $step->name_snapshot }}</span> <x-workflow-status :status="$step->status" /></div>
-                        <a href="{{ route('documents.pdf.viewer', [$document, 'version' => $previewVersion]) }}" class="mt-3 inline-flex rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">Preview dokumen tahap ini</a>
                         @if($relation === 'signatures')
                             @php
                                 $scopeLabel = match($step->specimen_scope) {
