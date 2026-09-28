@@ -23,12 +23,7 @@ test('owner submit goes directly to waiting approval when approver is selected',
         )
     );
 
-    $response->assertRedirect(
-        route(
-            'documents.show',
-            $document
-        )
-    );
+    $response->assertRedirect(route('documents.index'));
 
     $document->refresh();
 

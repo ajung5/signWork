@@ -12,8 +12,19 @@ use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
+function twoPagePdfUpload(): UploadedFile
+{
+    return UploadedFile::fake()->createWithContent(
+        'two-page-source.pdf',
+        base64_decode(
+            'JVBERi0xLjcKJcK1wrYKCjEgMCBvYmoKPDwvVHlwZS9DYXRhbG9nL1BhZ2VzIDIgMCBSPj4KZW5kb2JqCgoyIDAgb2JqCjw8L1R5cGUvUGFnZXMvQ291bnQgMi9LaWRzWzQgMCBSIDkgMCBSXT4+CmVuZG9iagoKMyAwIG9iago8PC9Gb250PDwvaGVsdiA1IDAgUj4+Pj4KZW5kb2JqCgo0IDAgb2JqCjw8L1R5cGUvUGFnZS9NZWRpYUJveFswIDAgNTk1IDg0Ml0vUm90YXRlIDAvUmVzb3VyY2VzIDMgMCBSL1BhcmVudCAyIDAgUi9Db250ZW50c1s2IDAgUiA3IDAgUl0+PgplbmRvYmoKCjUgMCBvYmoKPDwvVHlwZS9Gb250L1N1YnR5cGUvVHlwZTEvQmFzZUZvbnQvSGVsdmV0aWNhL0VuY29kaW5nL1dpbkFuc2lFbmNvZGluZz4+CmVuZG9iagoKNiAwIG9iago8PC9MZW5ndGggNzg+PgpzdHJlYW0KCnEKQlQKMSAwIDAgMSA0MCA3NDIgVG0KL2hlbHYgMTIgVGYgWzwyNDdiNzQ3NDY1M2E3MzY5Njc2ZTY1NzIzYTMxN2Q+XVRKCkVUClEKCmVuZHN0cmVhbQplbmRvYmoKCjcgMCBvYmoKPDwvTGVuZ3RoIDc5Pj4Kc3RyZWFtCgpxCkJUCjEgMCAwIDEgMzAwIDc0MiBUbQovaGVsdiAxMiBUZiBbPDI0N2I3NDc0NjUzYTczNjk2NzZlNjU3MjNhMzI3ZD5dVEoKRVQKUQoKZW5kc3RyZWFtCmVuZG9iagoKOCAwIG9iago8PD4+CmVuZG9iagoKOSAwIG9iago8PC9UeXBlL1BhZ2UvTWVkaWFCb3hbMCAwIDU5NSA4NDJdL1JvdGF0ZSAwL1Jlc291cmNlcyA4IDAgUi9QYXJlbnQgMiAwIFI+PgplbmRvYmoKCnhyZWYKMCAxMAowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTYgMDAwMDAgbiAKMDAwMDAwMDA2MiAwMDAwMCBuIAowMDAwMDAwMTIwIDAwMDAwIG4gCjAwMDAwMDAxNjEgMDAwMDAgbiAKMDAwMDAwMDI3NCAwMDAwMCBuIAowMDAwMDAwMzYzIDAwMDAwIG4gCjAwMDAwMDA0OTAgMDAwMDAgbiAKMDAwMDAwMDYxOCAwMDAwMCBuIAowMDAwMDAwNjM5IDAwMDAwIG4gCgp0cmFpbGVyCjw8L1NpemUgMTAvUm9vdCAxIDAgUi9JRFs8NkEwQzY2QzJCREMyOENDM0JFQzI4NUMyOUEzNkMyODA+PDdGQ0QyNDQxMEVDNTQ1NjlCNjQ5MzY4MDlGQjUyNzhBPl0+PgpzdGFydHhyZWYKNzMwCiUlRU9GCg==',
+            true
+        )
+    );
+}
+
 /** @return array{Document, User, array<User>, array<User>} */
-function pdfWorkflowFixture(): array
+function pdfWorkflowFixture(?UploadedFile $upload = null): array
 {
     Storage::fake('local');
     $owner = User::factory()->create();
@@ -25,7 +36,7 @@ function pdfWorkflowFixture(): array
         }
     }
     $document = Document::factory()->for($owner, 'owner')->create(['status' => DocumentStatus::Draft, 'approver_id' => $approvers[0]->id, 'signer_id' => $signers[0]->id]);
-    $file = new UploadedFile(base_path('tests/Fixtures/two-signers.pdf'), 'two-signers.pdf', 'application/pdf', null, true);
+    $file = $upload ?? new UploadedFile(base_path('tests/Fixtures/two-signers.pdf'), 'two-signers.pdf', 'application/pdf', null, true);
     app(DocumentWorkflow::class)->configure($document, $owner, array_column($approvers, 'id'), array_column($signers, 'id'), $file);
     $document->refresh();
     $cycle = $document->currentCycle();
@@ -176,7 +187,7 @@ test('overlapping positions are rejected and workflow configuration locks after 
 });
 
 test('selected pages persist independent specimen positions and reject a missing page position', function () {
-    [$document, $owner] = pdfWorkflowFixture();
+    [$document, $owner] = pdfWorkflowFixture(twoPagePdfUpload());
     $cycle = $document->currentCycle();
     $positions = $cycle->signatures->map->only(['id', 'page', 'x', 'y', 'width', 'height'])->all();
     $positions[0]['specimen_scope'] = 'selected_pages';
