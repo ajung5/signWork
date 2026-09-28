@@ -249,7 +249,8 @@ test('draft PDF workflow guides the owner to confirm positions before submit', f
     $response
         ->assertOk()
         ->assertSee('Draft belum siap diajukan')
-        ->assertSee('Lengkapi posisi QR')
+        ->assertSee('Atur Posisi Spesiment')
+        ->assertSee('Lengkapi posisi Spesiment')
         ->assertSee('Preview dokumen sumber')
         ->assertDontSee('Atur PDF & posisi QR')
         ->assertDontSee('Tinjau posisi Spesiment')

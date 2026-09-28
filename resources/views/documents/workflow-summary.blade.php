@@ -52,8 +52,7 @@
         @endif
         @if ($document->isSigned())
             <div class="flex flex-wrap items-center gap-3 text-sm">
-                <a href="{{ route('verification.show', $cycle->public_id) }}" class="preview-action">Buka verifikasi
-                    QR</a>
+                <a href="{{ route('verification.show', $cycle->public_id) }}" class="preview-action">Buka verifikasi QR</a>
             </div>
         @endif
         <p class="break-all text-xs text-slate-500">Siklus {{ $cycle->number }} · SHA-256 sumber:
