@@ -71,6 +71,16 @@
         </div>
         <p data-dimension-hint class="text-xs text-slate-500"></p>
         <div data-signer-progress class="flex flex-wrap gap-2 text-xs"></div>
+        <section class="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4" aria-labelledby="placement-checklist-title">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <h3 id="placement-checklist-title" class="text-sm font-semibold text-slate-900">Checklist posisi QR</h3>
+                    <p class="text-xs text-slate-600">Klik status halaman untuk langsung membuka signer dan halaman tersebut.</p>
+                </div>
+                <span data-checklist-summary class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700">Memeriksa posisi…</span>
+            </div>
+            <div data-page-checklist class="grid gap-3 md:grid-cols-2" aria-live="polite"></div>
+        </section>
         <p data-placement-status role="status" class="text-sm text-blue-800"></p>
         <div data-preview-scroll class="overflow-auto rounded border border-slate-300 bg-slate-100 p-3">
             <div data-page-surface class="relative mx-auto bg-white" style="width:760px; touch-action:none">

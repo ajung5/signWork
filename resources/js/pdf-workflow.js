@@ -31,6 +31,8 @@ ready(() => {
     const scope = root.querySelector('[data-scope]');
     const pageSelect = root.querySelector('[data-page]');
     const pagePicker = root.querySelector('[data-page-picker]');
+    const pageChecklist = root.querySelector('[data-page-checklist]');
+    const checklistSummary = root.querySelector('[data-checklist-summary]');
     const surface = root.querySelector('[data-page-surface]');
     const preview = root.querySelector('[data-page-image]');
     const blocks = root.querySelector('[data-blocks]');
@@ -146,6 +148,36 @@ ready(() => {
         }
     };
     renderPageOptions();
+    const positionStatus = (step, stepIndex, pageNumber) => {
+        const targetPage = pageByNumber(pageNumber);
+        const position = pagePosition(step, pageNumber);
+        if (!targetPage || !hasCoordinates(position)) {
+            return {
+                state: 'missing',
+                label: 'belum ditempatkan',
+                message: `Signer ${stepIndex + 1}: posisi belum ditentukan pada halaman ${pageNumber}`,
+            };
+        }
+        if (position.x < 0 || position.y < 0 || position.x + position.width > targetPage.width + 0.01 || position.y + position.height > targetPage.height + 0.01) {
+            return {
+                state: 'invalid',
+                label: 'perlu diperbaiki',
+                message: `Signer ${stepIndex + 1}: posisi keluar batas pada halaman ${pageNumber}`,
+            };
+        }
+        for (const [previousIndex, previous] of steps.slice(0, stepIndex).entries()) {
+            if (!selectedPageNumbers(previous).includes(pageNumber)) continue;
+            const previousPosition = pagePosition(previous, pageNumber);
+            if (hasCoordinates(previousPosition) && position.x < previousPosition.x + previousPosition.width && position.x + position.width > previousPosition.x && position.y < previousPosition.y + previousPosition.height && position.y + position.height > previousPosition.y) {
+                return {
+                    state: 'invalid',
+                    label: 'perlu diperbaiki',
+                    message: `Signer ${previousIndex + 1} dan ${stepIndex + 1}: blok bertumpuk pada halaman ${pageNumber}`,
+                };
+            }
+        }
+        return { state: 'complete', label: 'lengkap', message: null };
+    };
     const issues = () => {
         const problems = [];
         steps.forEach((step, i) => {
@@ -154,25 +186,66 @@ ready(() => {
             const targetPageNumbers = selectedPageNumbers(step);
             if (step.specimen_scope === 'selected_pages' && targetPageNumbers.length === 0) { problems.push(`Signer ${i + 1}: pilih minimal satu halaman`); return; }
             targetPageNumbers.forEach((pageNumber) => {
-                const targetPage = pageByNumber(pageNumber);
-                const position = pagePosition(step, pageNumber);
-                if (!targetPage || !hasCoordinates(position)) {
-                    problems.push(`Signer ${i + 1}: posisi belum ditentukan pada halaman ${pageNumber}`);
-                    return;
-                }
-                if (position.x < 0 || position.y < 0 || position.x + position.width > targetPage.width + 0.01 || position.y + position.height > targetPage.height + 0.01) {
-                    problems.push(`Signer ${i + 1}: posisi keluar batas pada halaman ${pageNumber}`);
-                }
-                steps.slice(0, i).forEach((previous, j) => {
-                    if (!selectedPageNumbers(previous).includes(pageNumber)) return;
-                    const previousPosition = pagePosition(previous, pageNumber);
-                    if (hasCoordinates(previousPosition) && position.x < previousPosition.x + previousPosition.width && position.x + position.width > previousPosition.x && position.y < previousPosition.y + previousPosition.height && position.y + position.height > previousPosition.y) {
-                        problems.push(`Signer ${j + 1} dan ${i + 1}: blok bertumpuk pada halaman ${pageNumber}`);
-                    }
-                });
+                const status = positionStatus(step, i, pageNumber);
+                if (status.message) problems.push(status.message);
             });
         });
         return [...new Set(problems)];
+    };
+    const checklistStyles = {
+        complete: 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100',
+        missing: 'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100',
+        invalid: 'border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100',
+    };
+    const completeCount = (statuses) => statuses.filter((status) => status.state === 'complete').length;
+    const renderChecklist = () => {
+        if (!pageChecklist) return;
+        pageChecklist.replaceChildren();
+        let total = 0;
+        let complete = 0;
+        steps.forEach((step, i) => {
+            const targets = selectedPageNumbers(step);
+            const statuses = targets.map((pageNumber) => ({
+                pageNumber,
+                ...positionStatus(step, i, pageNumber),
+            }));
+            total += statuses.length;
+            complete += statuses.filter((status) => status.state === 'complete').length;
+
+            const card = document.createElement('details');
+            card.className = 'rounded-xl border border-slate-200 bg-white p-3';
+            card.open = i === Number(signerSelect.value);
+            const summary = document.createElement('summary');
+            summary.className = 'cursor-pointer list-none [&::-webkit-details-marker]:hidden';
+            summary.textContent = `${i + 1}. ${step.name_snapshot} · ${completeCount(statuses)}/${statuses.length || 0} halaman lengkap`;
+            card.append(summary);
+
+            const pageList = document.createElement('div');
+            pageList.className = 'mt-3 flex flex-wrap gap-2';
+            if (!statuses.length) {
+                pageList.textContent = 'Belum ada halaman yang dipilih.';
+            } else {
+                statuses.forEach((status) => {
+                    const chip = document.createElement('button');
+                    chip.type = 'button';
+                    chip.className = `rounded-lg border px-3 py-2 text-xs font-semibold transition ${checklistStyles[status.state]}`;
+                    chip.textContent = `${status.state === 'complete' ? '✓' : '!'} Halaman ${status.pageNumber} · ${status.label}`;
+                    chip.title = status.state === 'complete' ? 'Posisi sudah lengkap. Klik untuk melihat halaman.' : status.message;
+                    chip.addEventListener('click', () => {
+                        signerSelect.value = i;
+                        signerSelect.dispatchEvent(new Event('change'));
+                        if (Number(pageSelect.value) !== status.pageNumber) {
+                            pageSelect.value = status.pageNumber;
+                            load();
+                        }
+                    });
+                    pageList.append(chip);
+                });
+            }
+            card.append(pageList);
+            pageChecklist.append(card);
+        });
+        if (checklistSummary) checklistSummary.textContent = total ? `${complete}/${total} halaman lengkap` : 'Belum ada posisi yang diperiksa';
     };
     const draw = () => {
         blocks.replaceChildren();
@@ -237,13 +310,15 @@ ready(() => {
         progress.replaceChildren();
         steps.forEach((step, i) => {
             const badge = document.createElement('button'); badge.type = 'button';
-            badge.className = 'rounded border border-slate-300 px-3 py-2';
             const targets = selectedPageNumbers(step);
+            const statuses = targets.map((pageNumber) => positionStatus(step, i, pageNumber));
+            badge.className = `rounded border px-3 py-2 ${statuses.length && completeCount(statuses) === statuses.length ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`;
             const source = step.placement_source === 'placeholder' ? 'placeholder otomatis' : 'manual';
-            badge.textContent = `${i + 1}. ${step.name_snapshot} · ${step.specimen_scope === 'all_pages' ? 'semua halaman' : targets.length ? 'hal. ' + targets.join(', ') : 'belum ditempatkan'} · ${source}`;
+            badge.textContent = `${i + 1}. ${step.name_snapshot} · ${targets.length ? `${completeCount(statuses)}/${targets.length} halaman lengkap` : 'belum ditempatkan'} · ${source}`;
             badge.addEventListener('click', () => { signerSelect.value = i; signerSelect.dispatchEvent(new Event('change')); });
             progress.append(badge);
         });
+        renderChecklist();
     };
     const renderPagePicker = () => {
         if (!pagePicker) return;

@@ -66,15 +66,31 @@ def specimen_pages(step, total_pages):
 
 
 def specimen_position(step, page_number):
-    """Return the page-specific position, with legacy fallback only for global scope."""
+    """Return a complete page position while preserving page-specific x/y values."""
     positions = step.get('specimen_positions') or {}
     position = positions.get(str(page_number), positions.get(page_number))
     if position is None and step.get('specimen_scope') != 'selected_pages':
         position = step
+    if not isinstance(position, dict):
+        raise InvalidPdf(f'Posisi spesimen halaman {page_number} belum lengkap (data posisi tidak valid).')
+
+    # Older confirmed workflows stored only x/y in the per-page map while
+    # width/height remained on the signer step. Keep those documents usable
+    # without ever falling back to another page's x/y coordinates.
+    position = dict(position)
+    for key in ['width', 'height']:
+        if position.get(key) is None:
+            position[key] = step.get(key)
+
+    missing = [key for key in ['x', 'y', 'width', 'height'] if position.get(key) is None]
+    if missing:
+        raise InvalidPdf(
+            f"Posisi spesimen halaman {page_number} belum lengkap (kurang: {', '.join(missing)})."
+        )
     try:
         return {key: float(position[key]) for key in ['x', 'y', 'width', 'height']}
     except (KeyError, TypeError, ValueError) as error:
-        raise InvalidPdf(f'Posisi spesimen halaman {page_number} belum lengkap.') from error
+        raise InvalidPdf(f'Posisi spesimen halaman {page_number} belum lengkap (koordinat bukan angka).') from error
 
 
 def draw_specimens(doc, steps, url, color='red'):

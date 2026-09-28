@@ -310,6 +310,26 @@ class PdfWorkerTest(unittest.TestCase):
             with self.assertRaises(worker.InvalidPdf):
                 worker.validate_positions(doc, [step])
 
+    def test_selected_page_positions_can_inherit_size_from_legacy_step_data(self):
+        source = Path(self.directory.name) / 'three-pages-legacy-position-map.pdf'
+        with fitz.open() as doc:
+            for _ in range(3):
+                doc.new_page(width=595, height=842)
+            doc.save(source)
+        step = {'sequence': 1, 'placeholder': '${tte:signer:1}', 'name_snapshot': 'Signer 1',
+                'page': 1, 'x': 30, 'y': 100, 'width': 56.693, 'height': 56.693,
+                'specimen_pages': [1, 3], 'specimen_format': 'qr_2cm', 'specimen_scope': 'selected_pages',
+                'specimen_positions': {
+                    '1': {'x': 30, 'y': 100},
+                    '3': {'x': 300, 'y': 500},
+                }}
+        worker.run({'action': 'prepare', 'input': str(source), 'output': str(self.output), 'steps': [step],
+                    'specimen_version': 1, 'verification_url': 'https://example.test/verify/demo'})
+        with fitz.open(self.output) as doc:
+            self.assertEqual(len(doc[0].get_links()), 1)
+            self.assertEqual(len(doc[1].get_links()), 0)
+            self.assertEqual(len(doc[2].get_links()), 1)
+
     def test_missing_profile_explains_blocked_frame_but_qr_only_still_has_preview(self):
         step = {'profile_snapshot': {'name': 'Rizky Hidayat', 'jabatan': 'Analis',
                                     'unit_kerja': '  ', 'pangkat': None, 'golongan': 'III/a'}}

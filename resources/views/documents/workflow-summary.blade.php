@@ -35,7 +35,29 @@
             @if($cycle->submitted_at)<a href="{{ route('verification.show', $cycle->public_id) }}" class="preview-action">Halaman verifikasi QR</a>@endif
         </div>
         <p class="break-all text-xs text-slate-500">Siklus {{ $cycle->number }} · SHA-256 sumber: {{ $cycle->original_sha256 }}</p>
-        @if($document->isDraft() && !$cycle->positions_confirmed_at)<p class="text-sm text-red-700">Posisi QR belum dikonfirmasi. Buka pengaturan PDF sebelum mengajukan.</p>@endif
+        @if($document->isDraft())
+            @if($cycle->positions_confirmed_at)
+                <div class="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p class="font-semibold text-emerald-900">Siap diajukan</p>
+                        <p class="mt-1 text-sm text-emerald-800">Peserta dan posisi spesimen sudah dikonfirmasi. Periksa preview terakhir sebelum mengajukan dokumen.</p>
+                    </div>
+                    @can('update', $document)
+                        <a href="{{ route('documents.pdf.edit', $document) }}" class="inline-flex shrink-0 items-center justify-center rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100">Tinjau posisi</a>
+                    @endcan
+                </div>
+            @else
+                <div class="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p class="font-semibold text-amber-900">Draft belum siap diajukan</p>
+                        <p class="mt-1 text-sm text-amber-800">Lengkapi peserta, cakupan halaman, dan posisi QR terlebih dahulu.</p>
+                    </div>
+                    @can('update', $document)
+                        <a href="{{ route('documents.pdf.edit', $document) }}" class="inline-flex shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100">Atur PDF & posisi QR</a>
+                    @endcan
+                </div>
+            @endif
+        @endif
         <div class="grid gap-5 md:grid-cols-2">
             @foreach(['approvals' => 'Verifikasi', 'signatures' => 'Tanda Tangan'] as $relation => $label)
                 <div><h3 class="mb-2 text-sm font-semibold">{{ $label }}</h3><ol class="space-y-2 text-sm">

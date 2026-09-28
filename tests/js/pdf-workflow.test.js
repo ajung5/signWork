@@ -38,7 +38,7 @@ function editor({ error = null, x = 500, y = 720, extraStep = false, pageWidth =
     if (extraStep) steps.push({ ...steps[0], id: 2, name_snapshot: 'Signer Dua', x: 350, y: 100 });
     const fields = Object.fromEntries(['active-signer', 'scope', 'page', 'page-surface', 'page-image', 'blocks',
         'position-inputs', 'position-form', 'zoom', 'preview-scroll', 'format', 'page-picker', 'confirm-positions',
-        'signer-progress', 'dimension-hint', 'reset-position'].map(key => [`[data-${key}]`, new Element()]));
+        'signer-progress', 'page-checklist', 'checklist-summary', 'dimension-hint', 'reset-position'].map(key => [`[data-${key}]`, new Element()]));
     fields['[data-zoom]'].value = '1';
     fields['[data-preview-scroll]'].clientWidth = 900;
     const statuses = [new Element(), new Element()];
@@ -154,4 +154,23 @@ test('selected-pages preview remembers the page being positioned per signer', ()
     ui.field('active-signer').value = 0;
     ui.fire('active-signer', 'change');
     assert.equal(Number(ui.field('page').value), 3);
+});
+
+test('page checklist identifies missing and completed positions', () => {
+    const ui = editor();
+    ui.fire('page-image', 'load');
+    ui.field('scope').value = 'selected_pages';
+    ui.fire('scope', 'change');
+    const pageThree = ui.field('page-picker').children.find((label) => label.children?.[0]?.value === 3);
+    pageThree.children[0].checked = true;
+    pageThree.children[0].dispatchEvent({ type: 'change' });
+
+    assert.match(ui.field('checklist-summary').textContent, /1\/2 halaman lengkap/);
+    assert.match(ui.field('page-checklist').children[0].children[0].textContent, /1\/2 halaman lengkap/);
+    assert.match(ui.field('page-checklist').children[0].children[1].children[1].textContent, /Halaman 3 · belum ditempatkan/);
+
+    ui.fire('page-image', 'load');
+    ui.fire('reset-position', 'click');
+    assert.match(ui.field('checklist-summary').textContent, /2\/2 halaman lengkap/);
+    assert.match(ui.field('page-checklist').children[0].children[1].children[1].textContent, /Halaman 3 · lengkap/);
 });

@@ -205,6 +205,17 @@ test('selected pages persist independent specimen positions and reject a missing
     ])->assertSessionHasErrors('positions');
 });
 
+test('draft PDF workflow guides the owner to confirm positions before submit', function () {
+    [$document, $owner] = pdfWorkflowFixture();
+    $document->currentCycle()->update(['positions_confirmed_at' => null]);
+
+    $this->actingAs($owner)->get(route('documents.show', $document))
+        ->assertOk()
+        ->assertSee('Draft belum siap diajukan')
+        ->assertSee('Lengkapi posisi QR')
+        ->assertDontSee('Ajukan Dokumen');
+});
+
 test('newly created documents save the PDF workflow before redirecting to the document list', function () {
     [$source, $owner, $approvers, $signers] = pdfWorkflowFixture();
     WorkflowMasterEntry::create(['user_id' => $owner->id, 'target_user_id' => $owner->id, 'type' => 'destination']);

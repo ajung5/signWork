@@ -42,6 +42,16 @@
 
             <div class="flex flex-wrap gap-2">
                 @if(!$document->requires_pdf_workflow || $cycle)
+                @if($cycle && $document->isDraft() && !$cycle->positions_confirmed_at)
+                    @can('update', $document)
+                        <a
+                            href="{{ route('documents.pdf.edit', $document) }}"
+                            class="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800 transition hover:bg-amber-100"
+                        >
+                            Lengkapi posisi QR
+                        </a>
+                    @endcan
+                @else
                 @can('submit', $document)
                     <form
                         action="{{ route('documents.submit', $document) }}"
@@ -58,6 +68,7 @@
                         </button>
                     </form>
                 @endcan
+                @endif
                 @endif
 
                 @can('update', $document)
