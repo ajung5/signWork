@@ -396,29 +396,38 @@ class DocumentWorkflow {
     }
 
     public function submit(Document $document, User $actor, string $token): void {
-        DB::transaction(function () use ($document, $actor, $token): void {
-            $locked = Document::query()->lockForUpdate()->findOrFail($document->id);
-            Gate::forUser($actor)->authorize('submit', $locked);
-            $cycle = $this->cycle($locked, $token);
-            if (!$cycle->positions_confirmed_at || !$cycle->approvals()->exists() || !$cycle->signatures()->exists()) {
-                throw ValidationException::withMessages([
-                    'workflow' => 'Lengkapi alur dan konfirmasi posisi QR terlebih dahulu.'
+        $outputs = [];
+        try {
+            DB::transaction(function () use ($document, $actor, $token, &$outputs): void {
+                $locked = Document::query()->lockForUpdate()->findOrFail($document->id);
+                Gate::forUser($actor)->authorize('submit', $locked);
+                $cycle = $this->cycle($locked, $token);
+                if (!$cycle->positions_confirmed_at || !$cycle->approvals()->exists() || !$cycle->signatures()->exists()) {
+                    throw ValidationException::withMessages([
+                        'workflow' => 'Lengkapi alur dan konfirmasi posisi QR terlebih dahulu.'
+                    ]);
+                }
+                $this->pdf->ensureHash($cycle->original_path, $cycle->original_sha256);
+                if (!$cycle->prepared_path) {
+                    $outputs[] = $this->prepare($locked, $cycle);
+                }
+                $cycle->update([
+                    'status' => 'waiting_approval',
+                    'submitted_at' => now(),
+                    'title' => $locked->title,
+                    'document_number' => $locked->document_number
                 ]);
-            }
-            $this->pdf->ensureHash($cycle->original_path, $cycle->original_sha256);
-            $cycle->update([
-                'status' => 'waiting_approval',
-                'submitted_at' => now(),
-                'title' => $locked->title,
-                'document_number' => $locked->document_number
-            ]);
-            $locked->update([
-                'status' => DocumentStatus::WaitingApproval,
-                'submitted_at' => now(),
-                'approver_id' => $cycle->approvals()->firstOrFail()->user_id,
-                'approver_assigned_at' => now()
-            ]);
-        });
+                $locked->update([
+                    'status' => DocumentStatus::WaitingApproval,
+                    'submitted_at' => now(),
+                    'approver_id' => $cycle->approvals()->firstOrFail()->user_id,
+                    'approver_assigned_at' => now()
+                ]);
+            });
+        } catch (\Throwable $error) {
+            Storage::disk('local')->delete($outputs);
+            throw $error;
+        }
     }
 
     public function decide(Document $document, User $actor, string $token, ?string $reason = null): void {
@@ -454,7 +463,9 @@ class DocumentWorkflow {
                 } elseif ($next = $cycle->approvals()->where('status', 'pending')->first()) {
                     $locked->update(['approver_id' => $next->user_id, 'approver_assigned_at' => now()]);
                 } else {
-                    $outputs[] = $this->prepare($locked, $cycle);
+                    if (!$cycle->prepared_path) {
+                        $outputs[] = $this->prepare($locked, $cycle);
+                    }
                     $cycle->update(['status' => 'waiting_signature']);
                     $locked->update([
                         'status' => DocumentStatus::WaitingSignature,

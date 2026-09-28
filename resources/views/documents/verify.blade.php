@@ -7,6 +7,23 @@
     <p class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"><strong>MOCK — BUKAN TTE SAH.</strong> Halaman ini hanya menunjukkan catatan simulasi dan kesesuaian hash file. Tidak membuktikan validitas sertifikat, identitas kriptografis, atau keabsahan TTE BSrE.</p>
     <dl class="grid gap-3 text-sm"><div><dt class="text-slate-500">Dokumen</dt><dd class="font-semibold">{{ $cycle->title }}</dd></div><div><dt class="text-slate-500">Nomor / Siklus</dt><dd>{{ $cycle->document_number ?? '—' }} / {{ $cycle->number }}</dd></div></dl>
     <ol class="space-y-2">@foreach($cycle->signatures as $step)<li class="rounded-lg border border-slate-200 p-3 text-sm">{{ $step->sequence }}. {{ $step->name_snapshot }} <x-workflow-status :status="$step->status" /> @if($step->acted_at)<span class="block text-slate-500">{{ $step->acted_at->timezone('Asia/Jakarta')->format('d M Y H:i:s') }} WIB</span>@endif</li>@endforeach</ol>
+    <section class="rounded-xl border border-violet-200 bg-violet-50 p-4">
+        <h2 class="font-semibold text-violet-900">Informasi posisi spesimen QR</h2>
+        <p class="mt-1 text-sm text-violet-800">QR hanya muncul pada cakupan halaman yang ditentukan untuk masing-masing penandatangan.</p>
+        <ul class="mt-3 space-y-2 text-sm text-slate-700">
+            @foreach($cycle->signatures as $step)
+                @php
+                    $scopeLabel = match($step->specimen_scope) {
+                        'all_pages' => 'semua halaman',
+                        'selected_pages' => 'halaman ' . implode(', ', array_map('intval', $step->specimen_pages ?? [])),
+                        'selected_page' => 'halaman ' . (int) ($step->page ?? 0),
+                        default => 'cakupan tidak tersedia',
+                    };
+                @endphp
+                <li><span class="font-semibold">{{ $step->sequence }}. {{ $step->name_snapshot }}</span>: specimen pada {{ $scopeLabel }}.</li>
+            @endforeach
+        </ul>
+    </section>
     @if($cycle->status === 'signed')
         <div><h2 class="text-sm font-semibold">SHA-256 PDF final</h2><code class="mt-2 block break-all rounded-lg bg-slate-100 p-3 text-xs">{{ $cycle->final_sha256 }}</code></div>
         <form method="POST" action="{{ route('verification.compare', $cycle->public_id) }}" class="space-y-3" data-hash-form>

@@ -161,7 +161,7 @@ class PdfWorkerTest(unittest.TestCase):
                     for n, page in enumerate(doc):
                         self.assertIn(f'Halaman {n + 1}/{len(doc)}', page.get_text())
 
-    def test_framed_and_qr_only_appear_only_after_their_signer_with_single_footer(self):
+    def test_pending_specimens_are_red_and_signed_specimen_becomes_black(self):
         steps = self.steps()
         profile = {'name': 'AGUNG NAWAWI, S.Kom', 'jabatan': 'Pranata Komputer Ahli Pertama',
                    'unit_kerja': 'DINAS KOMUNIKASI, INFORMATIKA, PERSANDIAN DAN STATISTIK',
@@ -172,10 +172,13 @@ class PdfWorkerTest(unittest.TestCase):
             geometry = worker.specimens.layout(step)
             step.update(width=geometry['width'], height=geometry['height'])
         worker.run({'action': 'prepare', 'input': str(self.source), 'output': str(self.output),
-                    'steps': steps, 'specimen_version': 1})
+                    'steps': steps, 'specimen_version': 1,
+                    'verification_url': 'https://example.test/verify/demo'})
         with fitz.open(self.output) as doc:
-            self.assertNotIn('AGUNG NAWAWI', doc[0].get_text())
-            self.assertEqual(len(doc[0].get_image_info()), 0)
+            self.assertIn('AGUNG NAWAWI', doc[0].get_text())
+            self.assertEqual(len(doc[0].get_image_info()), 2)
+            pixmap = doc[0].get_pixmap(clip=fitz.Rect(30, 150, 340, 300), alpha=False)
+            self.assertTrue(any(r > 150 and g < 100 and b < 100 for r, g, b in zip(pixmap.samples[0::3], pixmap.samples[1::3], pixmap.samples[2::3])))
         previous = self.output
         for index, step in enumerate(steps):
             output = Path(self.directory.name) / f'specimen-{index}.pdf'
@@ -185,11 +188,14 @@ class PdfWorkerTest(unittest.TestCase):
             with fitz.open(output) as doc:
                 self.assertNotIn('KABUPATEN SUBANG', doc[0].get_text())
                 self.assertEqual(doc[0].get_text().count('SIMULASI TTE - BUKAN TTE SAH'), 1)
-                self.assertEqual(len(doc[0].get_image_info()), index + 1)
+                self.assertEqual(len(doc[0].get_image_info()), [2, 3][index])
                 rects = [fitz.Rect(image['bbox']) for image in doc[0].get_image_info()]
-                self.assertAlmostEqual(rects[0].width, 2 * worker.specimens.CM, places=2)
+                self.assertTrue(any(abs(rect.width - 2 * worker.specimens.CM) < .02 for rect in rects))
                 if index == 1:
-                    self.assertAlmostEqual(rects[1].width, 2.5 * worker.specimens.CM, places=2)
+                    self.assertTrue(any(abs(rect.width - 2.5 * worker.specimens.CM) < .02 for rect in rects))
+                if index == 0:
+                    pixmap = doc[0].get_pixmap(clip=fitz.Rect(30, 150, 340, 300), alpha=False)
+                    self.assertFalse(any(r > 150 and g < 100 and b < 100 for r, g, b in zip(pixmap.samples[0::3], pixmap.samples[1::3], pixmap.samples[2::3])))
             previous = output
 
     def test_new_qr_sizes_render_at_exact_dimensions_and_legacy_size_is_retained(self):
@@ -234,8 +240,8 @@ class PdfWorkerTest(unittest.TestCase):
             worker.run({'action': 'mock_sign', 'input': str(previous), 'output': str(output), 'step': step,
                         'receipt': f'signer {index}', 'verification_url': 'https://example.test/verify/demo'})
             with fitz.open(output) as doc:
-                self.assertEqual(len(doc[0].get_image_info()), 2 if index > 1 else 1)
-                self.assertEqual(len(doc[1].get_image_info()), 3 if index == 3 else index)
+                self.assertEqual(len(doc[0].get_image_info()), [2, 3, 3][index - 1])
+                self.assertEqual(len(doc[1].get_image_info()), 2 + index)
             previous = output
 
     def test_specimen_can_target_multiple_selected_pages(self):
@@ -262,9 +268,9 @@ class PdfWorkerTest(unittest.TestCase):
                     'receipt': 'selected pages', 'step': step,
                     'verification_url': 'https://example.test/verify/demo'})
         with fitz.open(signed) as doc:
-            self.assertEqual(len(doc[0].get_image_info()), 1)
+            self.assertEqual(len(doc[0].get_image_info()), 2)
             self.assertEqual(len(doc[1].get_image_info()), 0)
-            self.assertEqual(len(doc[2].get_image_info()), 1)
+            self.assertEqual(len(doc[2].get_image_info()), 2)
 
     def test_selected_page_specimens_use_a_different_position_per_page(self):
         source = Path(self.directory.name) / 'three-pages-dynamic.pdf'

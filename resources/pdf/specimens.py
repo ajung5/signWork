@@ -80,31 +80,32 @@ def layout(step):
             'lines': lines, 'qr': [left, top, left + 2 * CM, top + 2 * CM]}
 
 
-def qr_bytes(url):
+def qr_bytes(url, color='black'):
     if not url.startswith(('https://', 'http://')) or len(url) > 350:
         raise ValueError('URL verifikasi tidak valid atau terlalu panjang.')
     qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=10, border=4)
     qr.add_data(url)
     qr.make(fit=True)
     buf = io.BytesIO()
-    qr.make_image(fill_color='black', back_color='white').save(buf, format='PNG')
+    qr.make_image(fill_color=color, back_color='white').save(buf, format='PNG')
     return buf.getvalue()
 
 
-def draw(page, step, url, x=0, y=0):
+def draw(page, step, url, x=0, y=0, color='black'):
     spec = layout(step)
+    ink = {'black': (0, 0, 0), 'red': (.85, 0, 0)}.get(color, color)
     rect = fitz.Rect(x, y, x + spec['width'], y + spec['height'])
     if step['specimen_format'] == 'framed':
         # Inset stroke so ink remains inside the validated rectangle.
         page.draw_rect(fitz.Rect(rect.x0 + .35, rect.y0 + .35, rect.x1 - .35, rect.y1 - .35),
-                       color=(0, 0, 0), fill=(1, 1, 1), width=.7)
-        page.draw_line((x + spec['divider'], y), (x + spec['divider'], rect.y1), color=(0, 0, 0), width=.7)
+                       color=ink, fill=(1, 1, 1), width=.7)
+        page.draw_line((x + spec['divider'], y), (x + spec['divider'], rect.y1), color=ink, width=.7)
         for line in spec['lines']:
             page.insert_text((x + line['x'], y + line['y']), line['text'],
-                             fontname=line['font'], fontsize=line['size'], color=(0, 0, 0))
+                             fontname=line['font'], fontsize=line['size'], color=ink)
     q = spec['qr']
     qr_rect = fitz.Rect(x + q[0], y + q[1], x + q[2], y + q[3])
-    page.insert_image(qr_rect, stream=qr_bytes(url))
+    page.insert_image(qr_rect, stream=qr_bytes(url, color))
     page.insert_link({'kind': fitz.LINK_URI, 'from': qr_rect, 'uri': url})
     return spec
 
@@ -120,7 +121,7 @@ def options(steps, url, previews=True):
                 if previews:
                     with fitz.open() as preview:
                         page = preview.new_page(width=spec['width'], height=spec['height'])
-                        draw(page, candidate, url)
+                        draw(page, candidate, url, color='red')
                         spec['preview'] = 'data:image/png;base64,' + base64.b64encode(
                             page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False).tobytes('png')).decode('ascii')
                 choices[fmt] = spec

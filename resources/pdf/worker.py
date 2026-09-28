@@ -77,6 +77,25 @@ def specimen_position(step, page_number):
         raise InvalidPdf(f'Posisi spesimen halaman {page_number} belum lengkap.') from error
 
 
+def draw_specimens(doc, steps, url, color='red'):
+    """Draw all configured specimens in their persisted page-specific positions."""
+    for step in steps:
+        if not step.get('specimen_format'):
+            continue
+        for page_number in specimen_pages(step, len(doc)):
+            position = specimen_position(step, page_number)
+            specimens.draw(doc[page_number - 1], step, url, position['x'], position['y'], color=color)
+
+
+def clear_specimen(page, rect):
+    """Remove a pending specimen before replacing it with the signed version."""
+    for link in page.get_links():
+        if fitz.Rect(link['from']).intersects(rect):
+            page.delete_link(link)
+    page.add_redact_annot(rect, fill=(1, 1, 1))
+    page.apply_redactions(images=2, graphics=2, text=0)
+
+
 def validate_positions(doc, steps):
     if not 1 <= len(steps) <= 10:
         raise InvalidPdf('Jumlah signer harus 1–10.')
@@ -133,6 +152,7 @@ def prepare(doc, payload):
         page.apply_redactions(images=0, graphics=0)
     if payload.get('specimen_version') == 1:
         specimens.footer(doc)
+    draw_specimens(doc, steps, payload['verification_url'], color='red')
     doc.set_metadata({**doc.metadata, 'subject': 'SignWork MOCK - bukan tanda tangan elektronik kriptografis'})
     doc.save(payload['output'], garbage=4, deflate=True)
     return {'ok': True}
@@ -150,8 +170,9 @@ def draw_signed_qr(doc, payload):
         position = specimen_position(step, n)
         rect = fitz.Rect(position['x'], position['y'], position['x'] + position['width'], position['y'] + position['height'])
         page = doc[n - 1]
+        clear_specimen(page, rect)
         if step.get('specimen_format'):
-            specimens.draw(page, step, url, position['x'], position['y'])
+            specimens.draw(page, step, url, position['x'], position['y'], color='black')
             continue
         qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=8, border=4)
         qr.add_data(url)

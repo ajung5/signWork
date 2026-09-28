@@ -10,7 +10,24 @@
         <p class="text-sm text-slate-600">Dokumen ini masih memakai alur metadata lama. Untuk workflow PDF, buka pengaturan PDF saat Draft atau setelah dikembalikan. Mode lama tidak menghasilkan TTE atau PDF final.</p>
         @endif
     @else
+        @php
+            $previewVersion = $cycle->status === 'signed'
+                ? 'final'
+                : ($cycle->current_path ? 'current' : 'original');
+            $previewLabel = $previewVersion === 'final'
+                ? 'Preview PDF final'
+                : ($previewVersion === 'current' ? 'Preview PDF tahap berjalan' : 'Preview dokumen sumber');
+        @endphp
         <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Provider: MOCK — simulasi, bukan TTE BSrE yang sah. QR membandingkan hash file; bukan validasi sertifikat elektronik.</p>
+        <div class="rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h3 class="font-semibold text-blue-900">Preview dokumen dan posisi spesimen</h3>
+                    <p class="mt-1 text-sm text-blue-800">Setiap tahap workflow dapat memeriksa PDF yang sedang berjalan dan posisi specimen QR yang akan digunakan.</p>
+                </div>
+                <a href="{{ route('documents.pdf.viewer', [$document, 'version' => $previewVersion]) }}" class="inline-flex shrink-0 items-center justify-center rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">{{ $previewLabel }}</a>
+            </div>
+        </div>
         <div class="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-3">
             <a href="{{ route('documents.pdf.viewer', $document) }}" class="preview-action">Preview dokumen sumber</a>
             @if($cycle->current_path && $cycle->status !== 'signed')<a href="{{ route('documents.pdf.viewer', [$document, 'version' => 'current']) }}" class="preview-action">Preview PDF siap signing / tahap terakhir</a>@endif
@@ -24,6 +41,29 @@
                 <div><h3 class="mb-2 text-sm font-semibold">{{ $label }}</h3><ol class="space-y-2 text-sm">
                     @foreach($cycle->$relation as $step)
                         <li class="rounded-xl border border-slate-200 bg-slate-50 p-4"><div class="flex flex-wrap items-center justify-between gap-3"><span class="font-medium">{{ $step->sequence }}. {{ $step->name_snapshot }}</span> <x-workflow-status :status="$step->status" /></div>
+                        <a href="{{ route('documents.pdf.viewer', [$document, 'version' => $previewVersion]) }}" class="mt-3 inline-flex rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">Preview dokumen tahap ini</a>
+                        @if($relation === 'signatures')
+                            @php
+                                $scopeLabel = match($step->specimen_scope) {
+                                    'all_pages' => 'Semua halaman',
+                                    'selected_pages' => 'Halaman ' . implode(', ', array_map('intval', $step->specimen_pages ?? [])),
+                                    'selected_page' => 'Halaman ' . (int) ($step->page ?? 0),
+                                    default => 'Belum ditentukan',
+                                };
+                            @endphp
+                            <div class="mt-3 rounded-lg border border-violet-200 bg-white p-3 text-xs text-slate-600">
+                                <p><span class="font-semibold text-violet-900">Posisi spesimen:</span> {{ $scopeLabel }}</p>
+                                @if($step->specimen_scope === 'selected_pages' && is_array($step->specimen_positions))
+                                    <div class="mt-2 flex flex-wrap gap-2">
+                                        @foreach($step->specimen_positions as $pageNumber => $position)
+                                            <span class="rounded border border-slate-200 bg-slate-50 px-2 py-1">Hal. {{ $pageNumber }} · X {{ number_format((float) ($position['x'] ?? 0), 1) }} · Y {{ number_format((float) ($position['y'] ?? 0), 1) }}</span>
+                                        @endforeach
+                                    </div>
+                                @elseif($step->x !== null && $step->y !== null)
+                                    <p class="mt-1">Koordinat: X {{ number_format((float) $step->x, 1) }} · Y {{ number_format((float) $step->y, 1) }}</p>
+                                @endif
+                            </div>
+                        @endif
                         @if($step->acted_at)<p class="mt-1 text-xs text-slate-500">{{ $step->acted_at->timezone('Asia/Jakarta')->format('d M Y H:i:s') }} WIB</p>@endif
                         @if($step->rejection_reason)<p class="mt-1 text-red-700">{{ $step->rejection_reason }}</p>@endif
                         </li>
