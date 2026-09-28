@@ -1,7 +1,19 @@
 <section class="mt-6 space-y-4 rounded-xl border border-slate-200 bg-white p-5">
     <div class="flex flex-wrap items-center justify-between gap-3">
         <h2 class="font-semibold">PDF & Alur Berurutan</h2>
-        @can('update', $document)<a href="{{ route('documents.pdf.edit', $document) }}" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-800">Atur PDF, peserta & posisi QR</a>@endcan
+        @can('update', $document)
+            @if($document->isDraft())
+                <a href="{{ route('documents.pdf.edit', $document) }}" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">
+                    @if(!$cycle)
+                        Atur PDF & peserta
+                    @elseif($cycle->positions_confirmed_at)
+                        Tinjau posisi QR
+                    @else
+                        Lengkapi posisi QR
+                    @endif
+                </a>
+            @endif
+        @endcan
     </div>
     @if(!$cycle)
         @if($document->requires_pdf_workflow)
@@ -36,24 +48,14 @@
         <p class="break-all text-xs text-slate-500">Siklus {{ $cycle->number }} · SHA-256 sumber: {{ $cycle->original_sha256 }}</p>
         @if($document->isDraft())
             @if($cycle->positions_confirmed_at)
-                <div class="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <p class="font-semibold text-emerald-900">Siap diajukan</p>
-                        <p class="mt-1 text-sm text-emerald-800">Peserta dan posisi spesimen sudah dikonfirmasi. Periksa preview terakhir sebelum mengajukan dokumen.</p>
-                    </div>
-                    @can('update', $document)
-                        <a href="{{ route('documents.pdf.edit', $document) }}" class="inline-flex shrink-0 items-center justify-center rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100">Tinjau posisi</a>
-                    @endcan
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                    <p class="font-semibold text-emerald-900">Siap diajukan</p>
+                    <p class="mt-1 text-sm text-emerald-800">Peserta dan posisi spesimen sudah dikonfirmasi. Periksa preview terakhir atau gunakan tombol <span class="font-semibold">Tinjau posisi QR</span> di header.</p>
                 </div>
             @else
-                <div class="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <p class="font-semibold text-amber-900">Draft belum siap diajukan</p>
-                        <p class="mt-1 text-sm text-amber-800">Lengkapi peserta, cakupan halaman, dan posisi QR terlebih dahulu.</p>
-                    </div>
-                    @can('update', $document)
-                        <a href="{{ route('documents.pdf.edit', $document) }}" class="inline-flex shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100">Atur PDF & posisi QR</a>
-                    @endcan
+                <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <p class="font-semibold text-amber-900">Draft belum siap diajukan</p>
+                    <p class="mt-1 text-sm text-amber-800">Lengkapi peserta, cakupan halaman, dan posisi QR melalui tombol <span class="font-semibold">Lengkapi posisi QR</span> di header.</p>
                 </div>
             @endif
         @endif

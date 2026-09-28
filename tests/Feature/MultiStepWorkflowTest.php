@@ -241,11 +241,32 @@ test('draft PDF workflow guides the owner to confirm positions before submit', f
     [$document, $owner] = pdfWorkflowFixture();
     $document->currentCycle()->update(['positions_confirmed_at' => null]);
 
-    $this->actingAs($owner)->get(route('documents.show', $document))
+    $response = $this->actingAs($owner)->get(route('documents.show', $document));
+
+    $response
         ->assertOk()
         ->assertSee('Draft belum siap diajukan')
         ->assertSee('Lengkapi posisi QR')
+        ->assertDontSee('Atur PDF & posisi QR')
+        ->assertDontSee('Tinjau posisi</a>')
         ->assertDontSee('Ajukan Dokumen');
+
+    expect(substr_count($response->getContent(), route('documents.pdf.edit', $document)))->toBe(1);
+});
+
+test('confirmed draft exposes one review position action', function () {
+    [$document, $owner] = pdfWorkflowFixture();
+
+    $response = $this->actingAs($owner)->get(route('documents.show', $document));
+
+    $response
+        ->assertOk()
+        ->assertSee('Siap diajukan')
+        ->assertSee('Tinjau posisi QR')
+        ->assertDontSee('Atur PDF & posisi QR')
+        ->assertDontSee('>Tinjau posisi</a>');
+
+    expect(substr_count($response->getContent(), route('documents.pdf.edit', $document)))->toBe(1);
 });
 
 test('newly created documents save the PDF workflow before redirecting to the document list', function () {
