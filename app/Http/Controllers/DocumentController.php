@@ -76,9 +76,18 @@ class DocumentController extends Controller
         return redirect()->route('documents.index')->with('success', 'Draft dan dokumen sumber berhasil disimpan.');
     }
 
-    public function show(Document $document): View
+    public function show(Request $request, Document $document): View
     {
         Gate::authorize('view', $document);
+
+        if (
+            $document->destination_user_id === $request->user()->id
+            && $document->isSigned()
+            && $document->sent_at !== null
+            && $document->read_at === null
+        ) {
+            $document->forceFill(['read_at' => now()])->save();
+        }
 
         $document->load(['owner', 'destination', 'approver', 'signer']);
 

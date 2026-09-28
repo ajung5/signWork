@@ -62,7 +62,10 @@ function approvePdfWorkflow(Document $document, array $approvers): void
 test('full workflow runs two approvals and two mock signatures and verifies the exact final bytes', function () {
     [$document, $owner, $approvers, $signers] = pdfWorkflowFixture();
     $token = $document->currentCycle()->public_id;
-    $this->actingAs($owner)->get(route('documents.pdf.edit', $document))->assertOk()->assertSee('Periksa posisi');
+    $this->actingAs($owner)->get(route('documents.pdf.edit', $document))
+        ->assertOk()
+        ->assertSee('aria-label="Kembali ke detail dokumen"', false)
+        ->assertSee('Periksa posisi');
     $this->post(route('documents.submit', $document), ['cycle_token' => $token])
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('documents.index'));
@@ -286,6 +289,7 @@ test('confirmed draft exposes one review position action', function () {
 
     $this->actingAs($owner)->get(route('documents.pdf.review', $document))
         ->assertOk()
+        ->assertSee('aria-label="Kembali ke detail dokumen"', false)
         ->assertSee('Preview read-only')
         ->assertSee('Edit posisi Spesiment')
         ->assertSee('Preview PDF tahap berjalan')

@@ -34,6 +34,7 @@ class Document extends Model
         'revision_count',
         'last_revised_at',
         'signed_at',
+        'read_at',
         'requires_pdf_workflow',
     ];
 
@@ -56,6 +57,7 @@ class Document extends Model
             'last_revised_at' => 'datetime',
             'signed_at' => 'datetime',
             'sent_at' => 'datetime',
+            'read_at' => 'datetime',
             'revision_count' => 'integer',
             'workflow_cycle' => 'integer',
             'requires_pdf_workflow' => 'boolean',

@@ -60,7 +60,19 @@
                                 </td>
 
                                 <td class="px-6 py-4">
-                                    <x-status-badge :status="$document->status" />
+                                    @if ($document->read_at)
+                                        <span data-read-status="read"
+                                            class="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                            Sudah dibaca
+                                        </span>
+                                    @else
+                                        <span data-read-status="unread"
+                                            class="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                                            Belum dibaca
+                                        </span>
+                                    @endif
                                 </td>
 
                                 <td class="px-6 py-4 text-right">

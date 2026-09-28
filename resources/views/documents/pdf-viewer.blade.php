@@ -2,7 +2,16 @@
 @section('title', 'Preview dokumen - SignWork')
 @section('content')
 <div class="mx-auto max-w-6xl space-y-4">
-    <a href="{{ route('documents.show', $document) }}" class="text-sm text-blue-700">← Kembali ke dokumen</a>
+    <a href="{{ route('documents.show', $document) }}"
+        aria-label="Kembali ke detail dokumen"
+        class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+            class="h-4 w-4">
+            <path d="M19 12H5" />
+            <path d="m11 18-6-6 6-6" />
+        </svg>
+        Kembali ke dokumen
+    </a>
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div><h1 class="text-xl font-semibold">{{ $document->title }}</h1><p class="text-sm text-slate-600">Preview {{ $version }} · {{ $cycle->source_name ?? 'PDF' }}</p></div>
         <a href="{{ route('documents.pdf.download', [$document, 'version' => $version]) }}" class="rounded-lg bg-blue-700 px-4 py-2 font-semibold text-white">Unduh PDF ini</a>

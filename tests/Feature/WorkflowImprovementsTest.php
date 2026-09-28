@@ -82,7 +82,9 @@ test('recipient receives final document only after owner or last signer sends it
 
 test('preview is authorized and returns PDF inline while download remains explicit', function () {
     [$document, $owner] = improvementDocument();
-    $this->actingAs($owner)->get(route('documents.pdf.viewer', $document))->assertSee('Unduh PDF ini');
+    $this->actingAs($owner)->get(route('documents.pdf.viewer', $document))
+        ->assertSee('aria-label="Kembali ke detail dokumen"', false)
+        ->assertSee('Unduh PDF ini');
     $this->get(route('documents.pdf.download', [$document, 'inline' => 1]))->assertHeader('Content-Type', 'application/pdf')->assertHeader('Content-Disposition', 'inline; filename=SignWork-preview.pdf');
     $this->get(route('documents.pdf.download', $document))->assertDownload();
     $this->actingAs(User::factory()->create())->get(route('documents.pdf.viewer', $document))->assertForbidden();
