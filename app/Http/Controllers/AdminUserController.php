@@ -12,34 +12,38 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-class AdminUserController extends Controller {
-    public function index(Request $request): View {
+class AdminUserController extends Controller
+{
+    public function index(Request $request): View
+    {
         $this->authorizeAdmin($request);
 
         $users = User::query()->withCount('documents')->orderBy('name')->paginate(15);
 
         return view('admin.users.index', [
-            'users' => $users
+            'users' => $users,
         ]);
     }
 
-    public function create(Request $request): View {
+    public function create(Request $request): View
+    {
         $this->authorizeAdmin($request);
 
         return view('admin.users.create');
     }
 
-    public function store(StoreAdminUserRequest $request): RedirectResponse {
+    public function store(StoreAdminUserRequest $request): RedirectResponse
+    {
         $role = UserRole::tryFrom($request->string('role')->toString()) ?? UserRole::User;
         abort_unless($request->user()->isSuperadmin() || $role === UserRole::User, 403);
-        $user = new User();
+        $user = new User;
 
         $user->forceFill([
             'name' => $request->string('name')->toString(),
             'email' => $request->string('email')->toString(),
             'password' => $request->string('password')->toString(),
             'email_verified_at' => now(),
-            'role' => $role
+            'role' => $role,
         ]);
 
         $user->fill($request->safe()->only(['jabatan', 'unit_kerja', 'pangkat', 'golongan']));
@@ -48,23 +52,25 @@ class AdminUserController extends Controller {
         return redirect()->route('admin.users.index')->with('success', 'User berhasil ditambahkan.');
     }
 
-    public function edit(Request $request, User $user): View {
+    public function edit(Request $request, User $user): View
+    {
         $this->authorizeAdmin($request);
 
         abort_if(
-            $user->isAdmin() && !$request->user()->isSuperadmin(),
+            $user->isAdmin() && ! $request->user()->isSuperadmin(),
             403,
             'Akun admin hanya dapat dikelola oleh Superadmin.'
         );
 
         return view('admin.users.edit', [
-            'user' => $user
+            'user' => $user,
         ]);
     }
 
-    public function update(UpdateAdminUserRequest $request, User $user): RedirectResponse {
+    public function update(UpdateAdminUserRequest $request, User $user): RedirectResponse
+    {
         abort_if(
-            $user->isAdmin() && !$request->user()->isSuperadmin(),
+            $user->isAdmin() && ! $request->user()->isSuperadmin(),
             403,
             'Akun admin hanya dapat dikelola oleh Superadmin.'
         );
@@ -75,7 +81,7 @@ class AdminUserController extends Controller {
         $data = [
             'name' => $request->string('name')->toString(),
             'email' => $request->string('email')->toString(),
-            'role' => $role
+            'role' => $role,
         ];
 
         if ($request->filled('password')) {
@@ -88,10 +94,11 @@ class AdminUserController extends Controller {
         return redirect()->route('admin.users.index')->with('success', 'User berhasil diperbarui.');
     }
 
-    public function destroy(Request $request, User $user): RedirectResponse {
+    public function destroy(Request $request, User $user): RedirectResponse
+    {
         $this->authorizeAdmin($request);
 
-        if ($user->isAdmin() && !$request->user()->isSuperadmin()) {
+        if ($user->isAdmin() && ! $request->user()->isSuperadmin()) {
             return redirect()
                 ->route('admin.users.index')
                 ->with('error', 'Akun admin hanya dapat dihapus oleh Superadmin.');
@@ -118,7 +125,8 @@ class AdminUserController extends Controller {
             ->with('success', 'User berhasil dihapus. Data Master yang terkait otomatis dibersihkan.');
     }
 
-    private function hasDocumentReferences(User $user): bool {
+    private function hasDocumentReferences(User $user): bool
+    {
         return Document::query()
             ->where(function ($query) use ($user): void {
                 $query
@@ -126,13 +134,14 @@ class AdminUserController extends Controller {
                     ->orWhere('destination_user_id', $user->id)
                     ->orWhere('approver_id', $user->id)
                     ->orWhere('signer_id', $user->id)
-                    ->orWhereHas('cycles.approvals', fn($query) => $query->where('user_id', $user->id))
-                    ->orWhereHas('cycles.signatures', fn($query) => $query->where('user_id', $user->id));
+                    ->orWhereHas('cycles.approvals', fn ($query) => $query->where('user_id', $user->id))
+                    ->orWhereHas('cycles.signatures', fn ($query) => $query->where('user_id', $user->id));
             })
             ->exists();
     }
 
-    private function authorizeAdmin(Request $request): void {
+    private function authorizeAdmin(Request $request): void
+    {
         abort_unless($request->user()?->isAdmin(), 403);
     }
 }

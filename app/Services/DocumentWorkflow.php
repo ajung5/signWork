@@ -13,7 +13,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
-class DocumentWorkflow {
+class DocumentWorkflow
+{
     public function __construct(private PdfEngine $pdf, private SigningProvider $provider) {}
 
     /** @param list<int> $approvers @param list<int> $signers */
@@ -56,15 +57,14 @@ class DocumentWorkflow {
                                 ->where('type', $type)
                                 ->where('target_user_id', $id)
                                 ->exists();
-                        if ($user->isAdmin() || !$allowed) {
+                        if ($user->isAdmin() || ! $allowed) {
                             throw ValidationException::withMessages([
-                                $type =>
-                                    'Peserta harus non-admin dan berasal dari Data Master Anda atau assignment dokumen ini.'
+                                $type => 'Peserta harus non-admin dan berasal dari Data Master Anda atau assignment dokumen ini.',
                             ]);
                         }
                     }
                 }
-                if (!$upload && !$previous?->original_path) {
+                if (! $upload && ! $previous?->original_path) {
                     throw ValidationException::withMessages(['pdf' => 'Unggah PDF untuk memulai workflow.']);
                 }
                 $path = $previous?->original_path;
@@ -75,19 +75,19 @@ class DocumentWorkflow {
                         throw ValidationException::withMessages(['pdf' => 'Ukuran file maksimal 5 MB.']);
                     }
                     $extension = strtolower($upload->getClientOriginalExtension());
-                    if (!in_array($extension, ['pdf', 'doc', 'docx'], true)) {
+                    if (! in_array($extension, ['pdf', 'doc', 'docx'], true)) {
                         throw ValidationException::withMessages(['pdf' => 'Gunakan PDF, DOC, atau DOCX.']);
                     }
                     $sourcePath = $upload->storeAs(
-                        'signwork/' . $locked->uuid,
-                        Str::uuid() . '.' . $extension,
+                        'signwork/'.$locked->uuid,
+                        Str::uuid().'.'.$extension,
                         'local'
                     );
                     $newPath = $sourcePath;
                     if ($sourcePath && $extension !== 'pdf') {
                         $newPath = app(WordConverter::class)->convert($sourcePath);
                     }
-                    if (!$newPath) {
+                    if (! $newPath) {
                         throw ValidationException::withMessages(['pdf' => 'PDF gagal disimpan.']);
                     }
                     $path = $newPath;
@@ -98,15 +98,14 @@ class DocumentWorkflow {
                 }
                 $expectedTokens = [];
                 foreach (array_keys($signers) as $index) {
-                    $expectedTokens[] = '${tte:signer:' . ($index + 1) . '}';
+                    $expectedTokens[] = '${tte:signer:'.($index + 1).'}';
                 }
                 if (count($signers) === 1) {
                     $expectedTokens[] = '${tandatangan_naskah}';
                 }
                 if (array_diff(array_keys($metadata['placeholders']), $expectedTokens)) {
                     throw ValidationException::withMessages([
-                        'pdf' =>
-                            'Ada placeholder tanpa signer yang sesuai. Sesuaikan template dengan jumlah dan urutan signer.'
+                        'pdf' => 'Ada placeholder tanpa signer yang sesuai. Sesuaikan template dengan jumlah dan urutan signer.',
                     ]);
                 }
                 if (
@@ -116,7 +115,7 @@ class DocumentWorkflow {
                     )
                 ) {
                     throw ValidationException::withMessages([
-                        'pdf' => 'Gunakan satu format placeholder untuk signer pertama.'
+                        'pdf' => 'Gunakan satu format placeholder untuk signer pertama.',
                     ]);
                 }
                 $cycle = $this->draftCycle($locked);
@@ -131,7 +130,7 @@ class DocumentWorkflow {
                     'source_name' => $upload
                         ? mb_substr(basename($upload->getClientOriginalName()), 0, 240)
                         : $previous?->source_name,
-                    'source_sha256' => $sourcePath ? $this->pdf->hash($sourcePath) : $previous?->source_sha256
+                    'source_sha256' => $sourcePath ? $this->pdf->hash($sourcePath) : $previous?->source_sha256,
                 ]);
                 $oldSignatures = $cycle->signatures()->get()->keyBy('user_id');
                 $cycle->approvals()->delete();
@@ -142,23 +141,23 @@ class DocumentWorkflow {
                         ->create([
                             'user_id' => $id,
                             'sequence' => $index + 1,
-                            'name_snapshot' => User::findOrFail($id)->name
+                            'name_snapshot' => User::findOrFail($id)->name,
                         ]);
                 }
                 foreach ($signers as $index => $id) {
-                    $placeholder = '${tte:signer:' . ($index + 1) . '}';
+                    $placeholder = '${tte:signer:'.($index + 1).'}';
                     $matches = $metadata['placeholders'][$placeholder] ?? [];
-                    if (count($signers) === 1 && !$matches) {
+                    if (count($signers) === 1 && ! $matches) {
                         $matches = $metadata['placeholders']['${tandatangan_naskah}'] ?? [];
                     }
                     if (count($matches) > 1) {
                         throw ValidationException::withMessages([
-                            'pdf' => 'Placeholder ' . $placeholder . ' muncul lebih dari sekali. Perbaiki PDF sumber.'
+                            'pdf' => 'Placeholder '.$placeholder.' muncul lebih dari sekali. Perbaiki PDF sumber.',
                         ]);
                     }
                     $position = $matches[0] ?? null;
                     $old = $oldSignatures->get($id);
-                    if (!$position && !$upload && $old) {
+                    if (! $position && ! $upload && $old) {
                         $position = $old->only([
                             'page',
                             'x',
@@ -166,7 +165,7 @@ class DocumentWorkflow {
                             'width',
                             'height',
                             'specimen_scope',
-                            'specimen_pages'
+                            'specimen_pages',
                         ]);
                     }
                     $cycle->signatures()->create([
@@ -184,13 +183,13 @@ class DocumentWorkflow {
                         'specimen_pages' => is_array($position) ? $position['specimen_pages'] ?? null : null,
                         'width' => SpecimenTemplate::QR_SIZE,
                         'height' => SpecimenTemplate::QR_SIZE,
-                        'placement_source' => $matches ? 'placeholder' : 'manual'
+                        'placement_source' => $matches ? 'placeholder' : 'manual',
                     ]);
                 }
                 $locked->update([
                     'approver_id' => $approvers[0],
                     'signer_id' => $signers[0],
-                    'requires_pdf_workflow' => true
+                    'requires_pdf_workflow' => true,
                 ]);
             });
         } catch (\Throwable $error) {
@@ -200,7 +199,8 @@ class DocumentWorkflow {
     }
 
     /** @param array<string, mixed> $attributes */
-    public function updateMetadata(Document $document, User $actor, array $attributes): void {
+    public function updateMetadata(Document $document, User $actor, array $attributes): void
+    {
         DB::transaction(function () use ($document, $actor, $attributes): void {
             $locked = Document::query()->lockForUpdate()->findOrFail($document->id);
             Gate::forUser($actor)->authorize('update', $locked);
@@ -211,7 +211,8 @@ class DocumentWorkflow {
         });
     }
 
-    private function draftCycle(Document $document): DocumentCycle {
+    private function draftCycle(Document $document): DocumentCycle
+    {
         $previous = $document->currentCycle();
         if ($previous && $document->isDraft()) {
             return $previous;
@@ -229,7 +230,7 @@ class DocumentWorkflow {
             'pdf_metadata' => $previous?->pdf_metadata,
             'source_path' => $previous?->source_path,
             'source_name' => $previous?->source_name,
-            'source_sha256' => $previous?->source_sha256
+            'source_sha256' => $previous?->source_sha256,
         ]);
         if ($previous) {
             foreach ($previous->approvals()->get() as $step) {
@@ -253,7 +254,7 @@ class DocumentWorkflow {
                             'specimen_format',
                             'specimen_scope',
                             'specimen_pages',
-                            'profile_snapshot'
+                            'profile_snapshot',
                         ])
                     );
             }
@@ -269,7 +270,8 @@ class DocumentWorkflow {
     }
 
     /** @param list<array<string, mixed>> $positions */
-    public function place(Document $document, User $actor, string $token, string $sourceHash, array $positions): void {
+    public function place(Document $document, User $actor, string $token, string $sourceHash, array $positions): void
+    {
         DB::transaction(function () use ($document, $actor, $token, $sourceHash, $positions): void {
             $locked = Document::query()->lockForUpdate()->findOrFail($document->id);
             Gate::forUser($actor)->authorize('update', $locked);
@@ -299,18 +301,18 @@ class DocumentWorkflow {
                     'qr_3x3' => 'qr_3cm',
                     default => $positions[$index]['specimen_format'] ?? 'qr_2cm'
                 };
-                if (!in_array($format, ['framed', 'qr_2cm', 'qr_3cm'], true)) {
+                if (! in_array($format, ['framed', 'qr_2cm', 'qr_3cm'], true)) {
                     throw ValidationException::withMessages(['positions' => 'Pilih format berbingkai atau QR saja.']);
                 }
                 $scope = $positions[$index]['specimen_scope'] ?? 'selected_page';
-                if (!in_array($scope, ['all_pages', 'selected_pages', 'selected_page'], true)) {
+                if (! in_array($scope, ['all_pages', 'selected_pages', 'selected_page'], true)) {
                     throw ValidationException::withMessages([
-                        'positions' => 'Pilih cakupan semua halaman atau beberapa halaman.'
+                        'positions' => 'Pilih cakupan semua halaman atau beberapa halaman.',
                     ]);
                 }
                 $selectedPages = collect($positions[$index]['specimen_pages'] ?? [])
-                    ->map(fn(mixed $page): int => (int) $page)
-                    ->filter(fn(int $page): bool => $page > 0)
+                    ->map(fn (mixed $page): int => (int) $page)
+                    ->filter(fn (int $page): bool => $page > 0)
                     ->unique()
                     ->values()
                     ->all();
@@ -319,7 +321,7 @@ class DocumentWorkflow {
                 }
                 if ($scope === 'selected_pages' && $selectedPages === []) {
                     throw ValidationException::withMessages([
-                        'positions' => 'Pilih minimal satu halaman untuk spesimen.'
+                        'positions' => 'Pilih minimal satu halaman untuk spesimen.',
                     ]);
                 }
                 $choice = $options[$index]['layouts'][$format];
@@ -329,13 +331,13 @@ class DocumentWorkflow {
                 $profile = $templates->profile($step->user);
                 if (
                     $format === 'framed' &&
-                    !hash_equals(
+                    ! hash_equals(
                         $templates->fingerprint($profile),
                         (string) ($positions[$index]['profile_fingerprint'] ?? '')
                     )
                 ) {
                     throw ValidationException::withMessages([
-                        'positions' => 'Profil signer berubah. Muat ulang preview lalu konfirmasi kembali.'
+                        'positions' => 'Profil signer berubah. Muat ulang preview lalu konfirmasi kembali.',
                     ]);
                 }
                 $position = collect($positions[$index])
@@ -351,7 +353,7 @@ class DocumentWorkflow {
                     'specimen_pages' => $scope === 'all_pages' ? null : $selectedPages,
                     'profile_snapshot' => $profile,
                     'name_snapshot' => $profile['name'],
-                    'placement_source' => 'manual'
+                    'placement_source' => 'manual',
                 ];
             }
             $this->pdf->run('validate', $cycle->original_path, ['steps' => $validated]);
@@ -362,14 +364,15 @@ class DocumentWorkflow {
         });
     }
 
-    public function submit(Document $document, User $actor, string $token): void {
+    public function submit(Document $document, User $actor, string $token): void
+    {
         DB::transaction(function () use ($document, $actor, $token): void {
             $locked = Document::query()->lockForUpdate()->findOrFail($document->id);
             Gate::forUser($actor)->authorize('submit', $locked);
             $cycle = $this->cycle($locked, $token);
-            if (!$cycle->positions_confirmed_at || !$cycle->approvals()->exists() || !$cycle->signatures()->exists()) {
+            if (! $cycle->positions_confirmed_at || ! $cycle->approvals()->exists() || ! $cycle->signatures()->exists()) {
                 throw ValidationException::withMessages([
-                    'workflow' => 'Lengkapi alur dan konfirmasi posisi QR terlebih dahulu.'
+                    'workflow' => 'Lengkapi alur dan konfirmasi posisi QR terlebih dahulu.',
                 ]);
             }
             $this->pdf->ensureHash($cycle->original_path, $cycle->original_sha256);
@@ -377,18 +380,19 @@ class DocumentWorkflow {
                 'status' => 'waiting_approval',
                 'submitted_at' => now(),
                 'title' => $locked->title,
-                'document_number' => $locked->document_number
+                'document_number' => $locked->document_number,
             ]);
             $locked->update([
                 'status' => DocumentStatus::WaitingApproval,
                 'submitted_at' => now(),
                 'approver_id' => $cycle->approvals()->firstOrFail()->user_id,
-                'approver_assigned_at' => now()
+                'approver_assigned_at' => now(),
             ]);
         });
     }
 
-    public function decide(Document $document, User $actor, string $token, ?string $reason = null): void {
+    public function decide(Document $document, User $actor, string $token, ?string $reason = null): void
+    {
         $outputs = [];
         try {
             DB::transaction(function () use ($document, $actor, $token, $reason, &$outputs): void {
@@ -401,7 +405,7 @@ class DocumentWorkflow {
                 $step->update([
                     'status' => $reason === null ? 'approved' : 'rejected',
                     'acted_at' => now(),
-                    'rejection_reason' => $reason
+                    'rejection_reason' => $reason,
                 ]);
                 if ($reason !== null) {
                     $cycle
@@ -416,7 +420,7 @@ class DocumentWorkflow {
                     $locked->update([
                         'status' => DocumentStatus::Rejected,
                         'rejection_reason' => $reason,
-                        'rejected_at' => now()
+                        'rejected_at' => now(),
                     ]);
                 } elseif ($next = $cycle->approvals()->where('status', 'pending')->first()) {
                     $locked->update(['approver_id' => $next->user_id, 'approver_assigned_at' => now()]);
@@ -427,7 +431,7 @@ class DocumentWorkflow {
                         'status' => DocumentStatus::WaitingSignature,
                         'approved_at' => now(),
                         'signer_id' => $cycle->signatures()->firstOrFail()->user_id,
-                        'signer_assigned_at' => now()
+                        'signer_assigned_at' => now(),
                     ]);
                 }
             });
@@ -437,7 +441,8 @@ class DocumentWorkflow {
         }
     }
 
-    public function sign(Document $document, User $actor, string $token): void {
+    public function sign(Document $document, User $actor, string $token): void
+    {
         $outputs = [];
         try {
             DB::transaction(function () use ($document, $actor, $token, &$outputs): void {
@@ -449,25 +454,24 @@ class DocumentWorkflow {
                 abort_if($cycle->approvals()->where('status', '!=', 'approved')->exists(), 409);
                 if (config('signwork.provider') !== 'mock') {
                     throw ValidationException::withMessages([
-                        'provider' => 'Hanya provider mock tersedia. Integrasi BSrE belum aktif.'
+                        'provider' => 'Hanya provider mock tersedia. Integrasi BSrE belum aktif.',
                     ]);
                 }
                 $locked->update(['status' => DocumentStatus::Signing]);
-                if (!$cycle->prepared_path) {
+                if (! $cycle->prepared_path) {
                     $outputs[] = $this->prepare($locked, $cycle);
                 }
 
                 $this->pdf->ensureHash($cycle->current_path, $cycle->current_sha256);
-                $output = 'signwork/' . $locked->uuid . '/' . Str::uuid() . '.pdf';
+                $output = 'signwork/'.$locked->uuid.'/'.Str::uuid().'.pdf';
                 $outputs[] = $output;
                 $transaction = (string) Str::uuid();
                 $context =
                     $cycle->qr_mode === 'per_signer'
                         ? [
                             'step' => $step->toArray(),
-                            'verification_url' =>
-                                rtrim((string) config('signwork.verification_base_url'), '/') .
-                                route('verification.show', $cycle->public_id, false)
+                            'verification_url' => rtrim((string) config('signwork.verification_base_url'), '/').
+                                route('verification.show', $cycle->public_id, false),
                         ]
                         : [];
                 $this->provider->sign($cycle->current_path, $output, $transaction, $step->name_snapshot, $context);
@@ -478,14 +482,14 @@ class DocumentWorkflow {
                     'input_sha256' => $cycle->current_sha256,
                     'output_sha256' => $hash,
                     'output_path' => $output,
-                    'provider_transaction_id' => $transaction
+                    'provider_transaction_id' => $transaction,
                 ]);
                 $cycle->update(['current_path' => $output, 'current_sha256' => $hash]);
                 if ($next = $cycle->signatures()->where('status', 'pending')->first()) {
                     $locked->update([
                         'status' => DocumentStatus::WaitingSignature,
                         'signer_id' => $next->user_id,
-                        'signer_assigned_at' => now()
+                        'signer_assigned_at' => now(),
                     ]);
                 } else {
                     $cycle->update(['status' => 'signed', 'final_sha256' => $hash, 'completed_at' => now()]);
@@ -498,7 +502,8 @@ class DocumentWorkflow {
         }
     }
 
-    public function send(Document $document, User $actor, string $token): void {
+    public function send(Document $document, User $actor, string $token): void
+    {
         DB::transaction(function () use ($document, $actor, $token): void {
             $locked = Document::query()->lockForUpdate()->findOrFail($document->id);
             Gate::forUser($actor)->authorize('send', $locked);
@@ -509,25 +514,26 @@ class DocumentWorkflow {
         });
     }
 
-    private function prepare(Document $document, DocumentCycle $cycle): string {
+    private function prepare(Document $document, DocumentCycle $cycle): string
+    {
         $this->pdf->ensureHash($cycle->original_path, $cycle->original_sha256);
-        $prepared = 'signwork/' . $document->uuid . '/' . Str::uuid() . '.pdf';
+        $prepared = 'signwork/'.$document->uuid.'/'.Str::uuid().'.pdf';
         try {
             $verificationUrl =
-                rtrim((string) config('signwork.verification_base_url'), '/') .
+                rtrim((string) config('signwork.verification_base_url'), '/').
                 route('verification.show', $cycle->public_id, false);
             $this->pdf->run('prepare', $cycle->original_path, [
                 'output' => $this->pdf->path($prepared),
                 'steps' => $cycle->signatures()->get()->toArray(),
                 'verification_url' => $verificationUrl,
-                'specimen_version' => (int) $cycle->specimen_version
+                'specimen_version' => (int) $cycle->specimen_version,
             ]);
             $hash = $this->pdf->hash($prepared);
             $cycle->update([
                 'prepared_path' => $prepared,
                 'prepared_sha256' => $hash,
                 'current_path' => $prepared,
-                'current_sha256' => $hash
+                'current_sha256' => $hash,
             ]);
         } catch (\Throwable $error) {
             Storage::disk('local')->delete($prepared);
@@ -537,7 +543,8 @@ class DocumentWorkflow {
         return $prepared;
     }
 
-    private function cycle(Document $document, string $token): DocumentCycle {
+    private function cycle(Document $document, string $token): DocumentCycle
+    {
         $cycle = $document->currentCycle();
         abort_unless(
             $cycle && hash_equals($cycle->public_id, $token),
