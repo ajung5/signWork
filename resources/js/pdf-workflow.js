@@ -178,15 +178,11 @@ ready(() => {
         }
         return { state: 'complete', label: 'lengkap', message: null };
     };
-    const formatPageList = (pageNumbers) => {
-        const pages = [...new Set(pageNumbers)].sort((a, b) => a - b).map(String);
-        if (pages.length < 2) return pages[0] || '';
-        if (pages.length === 2) return `${pages[0]} dan ${pages[1]}`;
-        return `${pages.slice(0, -1).join(', ')}, dan ${pages.at(-1)}`;
-    };
     const collectIssues = () => {
         const missingBySigner = new Map();
-        const problems = [];
+        const invalidBySigner = new Map();
+        const configurationMessages = [];
+        const selectionProblems = [];
         let missingCount = 0;
         let invalidCount = 0;
         let configurationCount = 0;
@@ -194,11 +190,15 @@ ready(() => {
             const choice = step.layouts[step.specimen_format];
             if (!choice || choice.error) {
                 configurationCount += 1;
-                problems.push(`Signer ${i + 1} (${step.name_snapshot}): ${choice?.error || 'Pilih format spesimen'}`);
+                const message = `Signer ${i + 1} (${step.name_snapshot}): ${choice?.error || 'Pilih format spesimen'}`;
+                configurationMessages.push({index: i, message});
                 return;
             }
             const targetPageNumbers = selectedPageNumbers(step);
-            if (step.specimen_scope === 'selected_pages' && targetPageNumbers.length === 0) { problems.push(`Signer ${i + 1}: pilih minimal satu halaman`); return; }
+            if (step.specimen_scope === 'selected_pages' && targetPageNumbers.length === 0) {
+                selectionProblems.push(i);
+                return;
+            }
             targetPageNumbers.forEach((pageNumber) => {
                 const status = positionStatus(step, i, pageNumber);
                 if (status.state === 'missing') {
@@ -208,24 +208,36 @@ ready(() => {
                     missingBySigner.set(i, pages);
                 } else if (status.message) {
                     invalidCount += 1;
-                    problems.push(status.message);
+                    const pages = invalidBySigner.get(i) || [];
+                    pages.push(pageNumber);
+                    invalidBySigner.set(i, pages);
                 }
             });
         });
-        const missing = [...missingBySigner.entries()].map(([index, pageNumbers]) =>
-            `Signer ${index + 1}: posisi belum ditentukan pada halaman ${formatPageList(pageNumbers)}`
-        );
+        const missing = [...missingBySigner.entries()].map(([index, pageNumbers]) => `Signer ${index + 1}: ${pageNumbers.length} halaman belum ditempatkan`);
+        const invalid = [...invalidBySigner.entries()].map(([index, pageNumbers]) => `Signer ${index + 1}: ${pageNumbers.length} halaman perlu diperbaiki`);
+        const selection = selectionProblems.map((index) => `Signer ${index + 1}: pilih minimal satu halaman`);
         return {
-            messages: [...missing, ...new Set(problems)],
+            messages: [...missing, ...invalid, ...selection, ...configurationMessages.map(({message}) => message)],
             missingCount,
             invalidCount,
             configurationCount,
+            missingBySigner,
+            invalidBySigner,
+            configurationMessages,
+            selectionProblems,
         };
     };
-    const issueSummary = ({missingCount, invalidCount, configurationCount}) => {
-        if (missingCount) return `Posisi QR belum lengkap: ${missingCount} penempatan perlu ditentukan. Buka checklist di bawah untuk melihat signer dan halaman.`;
-        if (invalidCount) return `Ada ${invalidCount} penempatan QR yang perlu diperbaiki. Buka checklist di bawah untuk melihat halaman bermasalah.`;
-        if (configurationCount) return 'Format spesimen atau profil signer belum siap. Periksa data signer dan format spesimen.';
+    const issueSummary = ({missingCount, invalidCount, configurationCount, missingBySigner, invalidBySigner, configurationMessages, selectionProblems}) => {
+        const summaries = [];
+        missingBySigner.forEach((pageNumbers, index) => summaries.push(`Signer ${index + 1}: ${pageNumbers.length.toLocaleString('id-ID')} halaman belum ditempatkan.`));
+        invalidBySigner.forEach((pageNumbers, index) => summaries.push(`Signer ${index + 1}: ${pageNumbers.length.toLocaleString('id-ID')} halaman perlu diperbaiki.`));
+        selectionProblems.forEach((index) => summaries.push(`Signer ${index + 1}: pilih minimal satu halaman.`));
+        configurationMessages.forEach(({index}) => summaries.push(`Signer ${index + 1}: profil atau format spesimen belum siap.`));
+        if (summaries.length) return `${summaries.join(' ')} Buka checklist di bawah untuk melihat detail.`;
+        if (missingCount) return `Posisi QR belum lengkap: ${missingCount.toLocaleString('id-ID')} penempatan perlu ditentukan.`;
+        if (invalidCount) return `Ada ${invalidCount.toLocaleString('id-ID')} penempatan QR yang perlu diperbaiki.`;
+        if (configurationCount) return 'Profil signer atau format spesimen belum siap.';
         return 'Periksa kembali data penempatan QR.';
     };
     const checklistStyles = {
@@ -365,38 +377,87 @@ ready(() => {
             return;
         }
         const selected = new Set(selectedPageNumbers(step));
-        const label = document.createElement('span');
-        label.className = 'basis-full text-slate-600';
-        label.textContent = 'Pilih halaman untuk spesimen (setiap halaman dapat memiliki posisi berbeda):';
-        pagePicker.append(label);
-        pages.forEach((item) => {
-            const chip = document.createElement('label');
-            chip.className = 'inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2';
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.value = item.page;
-            checkbox.checked = selected.has(Number(item.page));
-            checkbox.addEventListener('change', () => {
-                step.specimen_scope = 'selected_pages';
-                const checked = [...pagePicker.querySelectorAll('input:checked')].map((input) => Number(input.value));
-                if (!checked.length) {
-                    checkbox.checked = true;
-                    return;
-                }
-                step.specimen_pages = [...new Set(checked)].sort((a, b) => a - b);
-                const currentPage = Number(pageSelect.value);
-                const nextPage = checkbox.checked
-                    ? Number(checkbox.value)
-                    : step.specimen_pages.includes(currentPage) ? currentPage : step.specimen_pages[0];
-                step.page = nextPage || null;
-                step.preview_page = nextPage || null;
-                renderPageOptions();
-                if (nextPage && Number(pageSelect.value) !== nextPage) pageSelect.value = nextPage;
-                if (nextPage) load(); else draw();
+        const helper = document.createElement('p');
+        helper.className = 'text-slate-600';
+        helper.textContent = 'Pilih halaman untuk spesimen (setiap halaman dapat memiliki posisi berbeda):';
+        const dropdown = document.createElement('div');
+        dropdown.className = 'relative w-full max-w-xl';
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'flex w-full items-center justify-between gap-3 rounded-lg border border-slate-300 bg-white px-3 py-2 text-left font-medium text-slate-800 shadow-sm hover:border-blue-400';
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.setAttribute('aria-haspopup', 'listbox');
+        const panel = document.createElement('div');
+        panel.className = 'absolute left-0 z-30 mt-2 hidden w-full min-w-[18rem] rounded-xl border border-slate-200 bg-white p-3 shadow-xl';
+        const panelHeader = document.createElement('div');
+        panelHeader.className = 'mb-2 flex items-center justify-between gap-2 text-xs text-slate-600';
+        const panelHint = document.createElement('span');
+        panelHint.textContent = 'Centang halaman yang akan diberi spesimen';
+        const panelCount = document.createElement('span');
+        panelCount.className = 'font-semibold text-slate-800';
+        panelHeader.append(panelHint, panelCount);
+        const search = document.createElement('input');
+        search.type = 'search';
+        search.placeholder = 'Cari nomor halaman';
+        search.className = 'mb-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm';
+        search.setAttribute('aria-label', 'Cari nomor halaman');
+        const options = document.createElement('div');
+        options.className = 'max-h-60 overflow-y-auto rounded-lg border border-slate-200 p-2';
+        const updateSummary = () => {
+            const count = selected.size;
+            toggle.textContent = count ? `${count.toLocaleString('id-ID')} halaman dipilih` : 'Pilih halaman';
+            panelCount.textContent = `${count.toLocaleString('id-ID')} dari ${pages.length.toLocaleString('id-ID')} dipilih`;
+        };
+        const updateOptions = () => {
+            options.replaceChildren();
+            const term = search.value.trim();
+            pages.filter((item) => !term || String(item.page).includes(term)).forEach((item) => {
+                const chip = document.createElement('label');
+                chip.className = 'flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-slate-50';
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = item.page;
+                checkbox.checked = selected.has(Number(item.page));
+                checkbox.addEventListener('change', () => {
+                    const nextSelected = new Set(selectedPageNumbers(step));
+                    if (checkbox.checked) nextSelected.add(Number(item.page));
+                    else nextSelected.delete(Number(item.page));
+                    if (!nextSelected.size) {
+                        checkbox.checked = true;
+                        return;
+                    }
+                    step.specimen_scope = 'selected_pages';
+                    step.specimen_pages = [...nextSelected].sort((a, b) => a - b);
+                    selected.clear();
+                    step.specimen_pages.forEach((pageNumber) => selected.add(pageNumber));
+                    const currentPage = Number(pageSelect.value);
+                    const nextPage = checkbox.checked
+                        ? Number(checkbox.value)
+                        : step.specimen_pages.includes(currentPage) ? currentPage : step.specimen_pages[0];
+                    step.page = nextPage || null;
+                    step.preview_page = nextPage || null;
+                    updateSummary();
+                    updateOptions();
+                    renderPageOptions();
+                    if (nextPage && Number(pageSelect.value) !== nextPage) pageSelect.value = nextPage;
+                    if (nextPage) load(); else draw();
+                });
+                chip.append(checkbox, document.createTextNode(`Halaman ${item.page}`));
+                options.append(chip);
             });
-            chip.append(checkbox, document.createTextNode(`Halaman ${item.page}`));
-            pagePicker.append(chip);
+            if (!options.children.length) options.textContent = 'Nomor halaman tidak ditemukan.';
+        };
+        toggle.addEventListener('click', () => {
+            const isOpen = toggle.getAttribute('aria-expanded') === 'true';
+            toggle.setAttribute('aria-expanded', String(!isOpen));
+            panel.classList.toggle('hidden');
         });
+        search.addEventListener('input', updateOptions);
+        panel.append(panelHeader, search, options);
+        dropdown.append(toggle, panel);
+        pagePicker.append(helper, dropdown);
+        updateSummary();
+        updateOptions();
     };
     const controls = () => {
         format.value = active().specimen_format;

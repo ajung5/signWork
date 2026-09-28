@@ -13,21 +13,27 @@ class Element {
         this.style = {};
         this.dataset = {};
         this.value = '';
+        this.attributes = {};
         this.classList = { toggle() {} };
     }
     addEventListener(type, fn) { (this.listeners[type] ??= []).push(fn); }
     dispatchEvent(event) { for (const fn of this.listeners[event.type] ?? []) fn(event); }
-    append(child) { this.children.push(child); }
+    append(...children) { this.children.push(...children); }
     add(child) { if (!this.children.length) this.value = child.value; this.append(child); }
     querySelectorAll(selector) {
-        if (selector === 'input:checked') return this.children.flatMap((child) => child.children ?? []).filter((child) => child.type === 'checkbox' && child.checked);
+        const descendants = (node) => (node.children ?? []).flatMap((child) => [child, ...descendants(child)]);
+        const inputs = descendants(this).filter((child) => child.tagName === 'INPUT');
+        if (selector === 'input:checked') return inputs.filter((input) => input.type === 'checkbox' && input.checked);
+        if (selector === 'input[type="checkbox"]') return inputs.filter((input) => input.type === 'checkbox');
+        if (selector === 'input') return inputs;
         return [];
     }
     replaceChildren() { this.children = []; }
-    setAttribute() {}
+    setAttribute(name, value) { this.attributes[name] = String(value); }
+    getAttribute(name) { return this.attributes[name] ?? null; }
 }
 
-function editor({ error = null, x = 500, y = 720, extraStep = false, pageWidth = 595, missingPages = [] } = {}) {
+function editor({ error = null, x = 500, y = 720, extraStep = false, pageWidth = 595, pageCount = 3, missingPages = [] } = {}) {
     const layouts = {
         qr_2cm: { width: 56.693, height: 56.693, preview: 'data:image/png;base64,qr' },
         qr_3cm: { width: 85.039, height: 85.039, preview: 'data:image/png;base64,qr3' },
@@ -46,13 +52,14 @@ function editor({ error = null, x = 500, y = 720, extraStep = false, pageWidth =
     fields['[data-zoom]'].value = '1';
     fields['[data-preview-scroll]'].clientWidth = 900;
     const statuses = [new Element(), new Element()];
+    const pages = Array.from({length: pageCount}, (_, index) => ({ page: index + 1, width: pageWidth, height: 842 }));
     const root = {
-        dataset: { pages: JSON.stringify([{ page: 1, width: pageWidth, height: 842 }, { page: 2, width: pageWidth, height: 842 }, { page: 3, width: pageWidth, height: 842 }]), steps: JSON.stringify(steps), previewUrl: '/preview' },
+        dataset: { pages: JSON.stringify(pages), steps: JSON.stringify(steps), previewUrl: '/preview' },
         querySelector: selector => fields[selector],
         querySelectorAll: () => statuses,
     };
     vm.runInNewContext(source, {
-        document: { readyState: 'complete', querySelectorAll: () => [], querySelector: () => root, createElement: () => new Element(), createTextNode: (text) => ({ textContent: text }) },
+        document: { readyState: 'complete', querySelectorAll: () => [], querySelector: () => root, createElement: (tagName) => { const element = new Element(); element.tagName = tagName.toUpperCase(); return element; }, createTextNode: (text) => ({ textContent: text }) },
         window: { addEventListener() {} },
         Option: function (text, value) { this.textContent = text; this.value = value; },
         Event: function (type) { this.type = type; },
@@ -62,7 +69,8 @@ function editor({ error = null, x = 500, y = 720, extraStep = false, pageWidth =
     const select = format => { field('format').value = format; fire('format', 'change'); };
     const position = key => Number(field('position-inputs').children.find(input => input.name === `positions[0][${key}]`).value);
     const submitted = key => field('position-inputs').children.find(input => input.name === `positions[0][${key}]`)?.value;
-    return { field, fire, select, position, submitted, statuses };
+    const pageCheckbox = (pageNumber) => field('page-picker').querySelectorAll('input[type="checkbox"]').find((input) => Number(input.value) === pageNumber);
+    return { field, fire, select, position, submitted, statuses, pageCheckbox };
 }
 
 test('switching to a valid frame keeps it within the page and allows confirmation', () => {
@@ -83,7 +91,7 @@ test('missing profile explains disabled confirmation without emitting a broken i
     ui.fire('page-image', 'load');
     ui.select('framed');
     assert.equal(ui.field('confirm-positions').disabled, true);
-    for (const status of ui.statuses) assert.match(status.textContent, /Format spesimen atau profil signer belum siap/);
+    for (const status of ui.statuses) assert.match(status.textContent, /Signer 1: profil atau format spesimen belum siap/);
     assert.equal(ui.field('blocks').children[0].children.length, 0);
     ui.select('qr_2cm');
     assert.equal(ui.field('confirm-positions').disabled, false);
@@ -96,7 +104,7 @@ test('overlapping frames and pages narrower than the frame still block confirmat
     assert.equal(overlap.field('confirm-positions').disabled, false);
     overlap.select('framed');
     assert.equal(overlap.field('confirm-positions').disabled, true);
-    assert.match(overlap.statuses[1].textContent, /penempatan QR yang perlu diperbaiki/);
+    assert.match(overlap.statuses[1].textContent, /Signer 2: 3 halaman perlu diperbaiki/);
     const overlapChips = overlap.field('page-checklist').children
         .flatMap((card) => card.children[1]?.children ?? []);
     assert.match(overlapChips.map((chip) => chip.textContent).join(' '), /Halaman 1 · perlu diperbaiki/);
@@ -105,7 +113,7 @@ test('overlapping frames and pages narrower than the frame still block confirmat
     narrow.fire('page-image', 'load');
     narrow.select('framed');
     assert.equal(narrow.field('confirm-positions').disabled, true);
-    assert.match(narrow.statuses[1].textContent, /penempatan QR yang perlu diperbaiki/);
+    assert.match(narrow.statuses[1].textContent, /Signer 1: 3 halaman perlu diperbaiki/);
     const narrowChips = narrow.field('page-checklist').children
         .flatMap((card) => card.children[1]?.children ?? []);
     assert.match(narrowChips.map((chip) => chip.textContent).join(' '), /Halaman 1 · perlu diperbaiki/);
@@ -136,9 +144,9 @@ test('selected-pages scope accepts multiple page checkboxes and submits them', (
     ui.fire('page-image', 'load');
     ui.field('scope').value = 'selected_pages';
     ui.fire('scope', 'change');
-    const pageThree = ui.field('page-picker').children.find((label) => label.children?.[0]?.value === 3);
-    pageThree.children[0].checked = true;
-    pageThree.children[0].dispatchEvent({ type: 'change' });
+    const pageThree = ui.pageCheckbox(3);
+    pageThree.checked = true;
+    pageThree.dispatchEvent({ type: 'change' });
     assert.deepEqual(ui.field('page').children.map((option) => Number(option.value)), [1, 3]);
     ui.fire('page-image', 'load');
     ui.fire('reset-position', 'click');
@@ -149,14 +157,34 @@ test('selected-pages scope accepts multiple page checkboxes and submits them', (
     assert.match(ui.statuses[1].textContent, /Semua posisi QR lengkap/);
 });
 
+test('large selected-page lists stay compact inside a searchable dropdown', () => {
+    const ui = editor({ pageCount: 1000 });
+    ui.fire('page-image', 'load');
+    ui.field('scope').value = 'selected_pages';
+    ui.fire('scope', 'change');
+
+    const picker = ui.field('page-picker');
+    const dropdown = picker.children.find((child) => child.children?.some((nested) => nested.tagName === 'BUTTON'));
+    const toggle = dropdown.children[0];
+    const search = picker.querySelectorAll('input').find((input) => input.type === 'search');
+    const panel = dropdown.children[1];
+
+    assert.match(toggle.textContent, /1 halaman dipilih/);
+    assert.equal(picker.querySelectorAll('input[type="checkbox"]').length, 1000);
+    assert.equal(panel.children[2].className.includes('max-h-60'), true);
+    search.value = '1000';
+    search.dispatchEvent({ type: 'input' });
+    assert.equal(picker.querySelectorAll('input[type="checkbox"]').length, 1);
+});
+
 test('selected-pages preview remembers the page being positioned per signer', () => {
     const ui = editor({ extraStep: true });
     ui.fire('page-image', 'load');
     ui.field('scope').value = 'selected_pages';
     ui.fire('scope', 'change');
-    const pageThree = ui.field('page-picker').children.find((label) => label.children?.[0]?.value === 3);
-    pageThree.children[0].checked = true;
-    pageThree.children[0].dispatchEvent({ type: 'change' });
+    const pageThree = ui.pageCheckbox(3);
+    pageThree.checked = true;
+    pageThree.dispatchEvent({ type: 'change' });
 
     assert.equal(Number(ui.field('page').value), 3);
     assert.equal(Number(ui.submitted('page')), 3);
@@ -173,9 +201,9 @@ test('page checklist identifies missing and completed positions', () => {
     ui.fire('page-image', 'load');
     ui.field('scope').value = 'selected_pages';
     ui.fire('scope', 'change');
-    const pageThree = ui.field('page-picker').children.find((label) => label.children?.[0]?.value === 3);
-    pageThree.children[0].checked = true;
-    pageThree.children[0].dispatchEvent({ type: 'change' });
+    const pageThree = ui.pageCheckbox(3);
+    pageThree.checked = true;
+    pageThree.dispatchEvent({ type: 'change' });
 
     assert.match(ui.field('checklist-summary').textContent, /1\/2 halaman lengkap/);
     assert.match(ui.field('page-checklist').children[0].children[0].textContent, /1\/2 halaman lengkap/);
@@ -191,7 +219,8 @@ test('position errors group missing pages by signer', () => {
     const ui = editor({ missingPages: [2, 3] });
     ui.fire('page-image', 'load');
 
-    assert.match(ui.statuses[1].textContent, /Posisi QR belum lengkap: 2 penempatan perlu ditentukan/);
+    assert.match(ui.statuses[1].textContent, /Signer 1: 2 halaman belum ditempatkan/);
+    assert.doesNotMatch(ui.statuses[1].textContent, /posisi belum ditentukan pada halaman/);
     assert.match(ui.field('page-checklist').children[0].children[1].children[1].textContent, /Halaman 2 · belum ditempatkan/);
     assert.match(ui.field('page-checklist').children[0].children[1].children[2].textContent, /Halaman 3 · belum ditempatkan/);
 });

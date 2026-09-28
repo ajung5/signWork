@@ -62,7 +62,7 @@
             <label class="text-sm">Format spesimen <select data-format class="mt-1 w-full rounded border border-slate-300 p-2"><option value="framed">1. QR Code dengan Teks</option><option value="qr_2cm">2. QR Code (2 × 2 cm)</option><option value="qr_3cm">3. QR Code (3 × 3 cm)</option></select></label>
             <button type="button" data-reset-position class="self-end rounded-lg border border-blue-200 bg-blue-50 p-2 text-sm text-blue-800">Letakkan di tengah halaman</button>
         </div>
-        <div data-page-picker class="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm" aria-live="polite"></div>
+        <div data-page-picker class="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm" aria-live="polite"></div>
         <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-slate-700">
             <p>Format 1: QR Code 2 × 2 cm dengan teks identitas penandatangan. Format 2: QR Code saja 2 × 2 cm. Format 3: QR Code saja 3 × 3 cm. Semua ukuran dihitung otomatis dan tidak menggunakan ukuran manual.</p>
             <p class="mt-2">Dokumen baru menggunakan cakupan semua halaman secara default. Jika memilih cakupan khusus, centang lebih dari satu halaman—misalnya halaman 1, 3, dan 5. Posisi tiap halaman disimpan terpisah dan dapat berbeda sesuai penempatan Anda.</p>

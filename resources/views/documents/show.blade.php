@@ -4,17 +4,12 @@
 
 @section('content')
     @php
-        $backRoute = auth()->user()->isAdmin()
-            ? route('admin.documents.index')
-            : route('documents.index');
+        $backRoute = auth()->user()->isAdmin() ? route('admin.documents.index') : route('documents.index');
     @endphp
 
-    <div class="mx-auto max-w-[1500px]">
+    <div class="mx-auto max-w-375">
         <div class="flex flex-wrap items-center gap-2 text-sm">
-            <a
-                href="{{ $backRoute }}"
-                class="font-medium text-slate-500 transition hover:text-blue-700"
-            >
+            <a href="{{ $backRoute }}" class="font-medium text-slate-500 transition hover:text-blue-700">
                 {{ auth()->user()->isAdmin() ? 'Semua Dokumen' : 'Dokumen Saya' }}
             </a>
 
@@ -41,20 +36,17 @@
             </div>
 
             <div class="flex flex-wrap gap-2">
-                @if(!$document->requires_pdf_workflow || $cycle)
-                    @if(!($cycle && $document->isDraft() && !$cycle->positions_confirmed_at))
+                @if (!$document->requires_pdf_workflow || $cycle)
+                    @if (!($cycle && $document->isDraft() && !$cycle->positions_confirmed_at))
                         @can('submit', $document)
-                            <form
-                                action="{{ route('documents.submit', $document) }}"
-                                method="POST"
-                            >
+                            <form action="{{ route('documents.submit', $document) }}" method="POST">
                                 @csrf
-                                @if($cycle)<input type="hidden" name="cycle_token" value="{{ $cycle->public_id }}">@endif
+                                @if ($cycle)
+                                    <input type="hidden" name="cycle_token" value="{{ $cycle->public_id }}">
+                                @endif
 
-                                <button
-                                    type="submit"
-                                    class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-800 transition hover:bg-blue-100"
-                                >
+                                <button type="submit"
+                                    class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-800 transition hover:bg-blue-100">
                                     Ajukan Dokumen
                                 </button>
                             </form>
@@ -63,17 +55,14 @@
                 @endif
 
                 @can('update', $document)
-                    @if(!$document->isRejected())
-                    <a
-                        href="{{ route('documents.edit', $document) }}"
-                        @class([
+                    @if (!$document->isRejected())
+                        <a href="{{ route('documents.edit', $document) }}" @class([
                             'rounded-lg border px-4 py-2.5 text-sm font-semibold transition',
                             'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100' => $document->isRejected(),
-                            'border-slate-300 bg-white text-slate-700 hover:bg-slate-100' => ! $document->isRejected(),
-                        ])
-                    >
-                        Edit
-                    </a>
+                            'border-slate-300 bg-white text-slate-700 hover:bg-slate-100' => !$document->isRejected()
+                        ])>
+                            Edit
+                        </a>
                     @endif
                 @endcan
             </div>
@@ -144,7 +133,8 @@
                 </p>
 
                 <p class="mt-2 text-sm leading-6 text-rose-800">
-                    Tidak ada aksi verifikasi yang dapat dilakukan pada status ini. Periksa pesan kegagalan sebelum mencoba kembali.
+                    Tidak ada aksi verifikasi yang dapat dilakukan pada status ini. Periksa pesan kegagalan sebelum mencoba
+                    kembali.
                 </p>
             </div>
         @endif
@@ -152,15 +142,13 @@
         <div class="mt-7 grid gap-6 xl:grid-cols-3">
             <section class="space-y-6 xl:col-span-2">
                 <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4 sm:px-6">
+                    <div
+                        class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4 sm:px-6">
                         <h2 class="font-semibold text-slate-900">Informasi Dokumen</h2>
-                        @if($document->isRejected())
+                        @if ($document->isRejected())
                             @can('update', $document)
-                                <a
-                                    href="{{ route('documents.edit', $document) }}"
-                                    data-repair-action
-                                    class="inline-flex items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800 transition hover:bg-amber-100"
-                                >
+                                <a href="{{ route('documents.edit', $document) }}" data-repair-action
+                                    class="inline-flex items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800 transition hover:bg-amber-100">
                                     Perbaiki Dokumen
                                 </a>
                             @endcan
@@ -252,19 +240,15 @@
                             Opsi ini hanya muncul untuk dokumen lama berstatus Diajukan yang belum mempunyai Verifikator aktif.
                         </p>
 
-                        <form
-                            action="{{ route('documents.assign-approver', $document) }}"
-                            method="POST"
-                            class="mt-5 flex flex-col gap-3 sm:flex-row"
-                        >
+                        <form action="{{ route('documents.assign-approver', $document) }}" method="POST"
+                            class="mt-5 flex flex-col gap-3 sm:flex-row">
                             @csrf
-                        @if($cycle)<input type="hidden" name="cycle_token" value="{{ $cycle->public_id }}">@endif
+                            @if ($cycle)
+                                <input type="hidden" name="cycle_token" value="{{ $cycle->public_id }}">
+                            @endif
 
-                            <select
-                                name="approver_id"
-                                required
-                                class="block flex-1 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-800"
-                            >
+                            <select name="approver_id" required
+                                class="block flex-1 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-800">
                                 <option value="">Pilih Verifikator</option>
 
                                 @foreach ($approverUsers as $user)
@@ -274,10 +258,8 @@
                                 @endforeach
                             </select>
 
-                            <button
-                                type="submit"
-                                class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-800 hover:bg-blue-100"
-                            >
+                            <button type="submit"
+                                class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-800 hover:bg-blue-100">
                                 Tetapkan
                             </button>
                         </form>
@@ -304,21 +286,18 @@
                                     </h3>
 
                                     <p class="mt-2 text-sm leading-6 text-emerald-800">
-                                        Setelah diverifikasi, opsi Verifikasi/Tolak langsung hilang dan dokumen diteruskan ke tahap berikutnya.
+                                        Setelah diverifikasi, opsi Verifikasi/Tolak langsung hilang dan dokumen diteruskan ke
+                                        tahap berikutnya.
                                     </p>
 
-                                    <form
-                                        action="{{ route('documents.approve', $document) }}"
-                                        method="POST"
-                                        class="mt-4"
-                                    >
+                                    <form action="{{ route('documents.approve', $document) }}" method="POST" class="mt-4">
                                         @csrf
-                        @if($cycle)<input type="hidden" name="cycle_token" value="{{ $cycle->public_id }}">@endif
+                                        @if ($cycle)
+                                            <input type="hidden" name="cycle_token" value="{{ $cycle->public_id }}">
+                                        @endif
 
-                                        <button
-                                            type="submit"
-                                            class="rounded-lg border border-emerald-300 bg-emerald-100 px-4 py-2.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-200"
-                                        >
+                                        <button type="submit"
+                                            class="rounded-lg border border-emerald-300 bg-emerald-100 px-4 py-2.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-200">
                                             Verifikasi Dokumen
                                         </button>
                                     </form>
@@ -329,21 +308,14 @@
                                         Tolak
                                     </h3>
 
-                                    <form
-                                        action="{{ route('documents.reject', $document) }}"
-                                        method="POST"
-                                        class="mt-4"
-                                    >
+                                    <form action="{{ route('documents.reject', $document) }}" method="POST" class="mt-4">
                                         @csrf
-                        @if($cycle)<input type="hidden" name="cycle_token" value="{{ $cycle->public_id }}">@endif
+                                        @if ($cycle)
+                                            <input type="hidden" name="cycle_token" value="{{ $cycle->public_id }}">
+                                        @endif
 
-                                        <textarea
-                                            name="rejection_reason"
-                                            rows="4"
-                                            required
-                                            placeholder="Alasan penolakan..."
-                                            class="block w-full rounded-lg border border-red-200 bg-white px-3 py-2.5 text-sm text-slate-900"
-                                        >{{ old('rejection_reason') }}</textarea>
+                                        <textarea name="rejection_reason" rows="4" required placeholder="Alasan penolakan..."
+                                            class="block w-full rounded-lg border border-red-200 bg-white px-3 py-2.5 text-sm text-slate-900">{{ old('rejection_reason') }}</textarea>
 
                                         @error('rejection_reason')
                                             <p class="mt-2 text-sm text-red-700">
@@ -351,10 +323,8 @@
                                             </p>
                                         @enderror
 
-                                        <button
-                                            type="submit"
-                                            class="mt-3 rounded-lg border border-red-300 bg-red-100 px-4 py-2.5 text-sm font-semibold text-red-800 hover:bg-red-200"
-                                        >
+                                        <button type="submit"
+                                            class="mt-3 rounded-lg border border-red-300 bg-red-100 px-4 py-2.5 text-sm font-semibold text-red-800 hover:bg-red-200">
                                             Tolak dan Kembalikan
                                         </button>
                                     </form>
@@ -370,19 +340,15 @@
                             Tetapkan Signer
                         </h2>
 
-                        <form
-                            action="{{ route('documents.assign-signer', $document) }}"
-                            method="POST"
-                            class="mt-5 flex flex-col gap-3 sm:flex-row"
-                        >
+                        <form action="{{ route('documents.assign-signer', $document) }}" method="POST"
+                            class="mt-5 flex flex-col gap-3 sm:flex-row">
                             @csrf
-                        @if($cycle)<input type="hidden" name="cycle_token" value="{{ $cycle->public_id }}">@endif
+                            @if ($cycle)
+                                <input type="hidden" name="cycle_token" value="{{ $cycle->public_id }}">
+                            @endif
 
-                            <select
-                                name="signer_id"
-                                required
-                                class="block flex-1 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-800"
-                            >
+                            <select name="signer_id" required
+                                class="block flex-1 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-800">
                                 <option value="">Pilih Signer</option>
 
                                 @foreach ($signerUsers as $user)
@@ -392,10 +358,8 @@
                                 @endforeach
                             </select>
 
-                            <button
-                                type="submit"
-                                class="rounded-lg border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-semibold text-violet-800 hover:bg-violet-100"
-                            >
+                            <button type="submit"
+                                class="rounded-lg border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-semibold text-violet-800 hover:bg-violet-100">
                                 Tetapkan
                             </button>
                         </form>
