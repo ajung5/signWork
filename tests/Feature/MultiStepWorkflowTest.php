@@ -52,7 +52,9 @@ test('full workflow runs two approvals and two mock signatures and verifies the 
     [$document, $owner, $approvers, $signers] = pdfWorkflowFixture();
     $token = $document->currentCycle()->public_id;
     $this->actingAs($owner)->get(route('documents.pdf.edit', $document))->assertOk()->assertSee('Periksa posisi');
-    $this->post(route('documents.submit', $document), ['cycle_token' => $token])->assertSessionHasNoErrors();
+    $this->post(route('documents.submit', $document), ['cycle_token' => $token])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('documents.index'));
     $this->actingAs($approvers[1])->post(route('documents.approve', $document), ['cycle_token' => $token])->assertForbidden();
     foreach ($approvers as $approver) {
         $this->actingAs($approver)->post(route('documents.approve', $document), ['cycle_token' => $token])->assertSessionHasNoErrors();
@@ -163,6 +165,39 @@ test('overlapping positions are rejected and workflow configuration locks after 
     $this->actingAs($owner)->put(route('documents.pdf.place', $document), ['cycle_token' => $cycle->public_id, 'source_sha256' => $cycle->original_sha256, 'confirmed' => 1, 'positions' => $positions])->assertSessionHasErrors('pdf');
     submitPdfWorkflow($document, $owner);
     $this->post(route('documents.pdf.store', $document), [])->assertForbidden();
+});
+
+test('selected pages persist independent specimen positions and reject a missing page position', function () {
+    [$document, $owner] = pdfWorkflowFixture();
+    $cycle = $document->currentCycle();
+    $positions = $cycle->signatures->map->only(['id', 'page', 'x', 'y', 'width', 'height'])->all();
+    $positions[0]['specimen_scope'] = 'selected_pages';
+    $positions[0]['specimen_pages'] = [1, 2];
+    $positions[0]['specimen_positions'] = [
+        1 => ['x' => 40, 'y' => 100, 'width' => 56.693, 'height' => 56.693],
+        2 => ['x' => 300, 'y' => 500, 'width' => 56.693, 'height' => 56.693],
+    ];
+
+    $this->actingAs($owner)->put(route('documents.pdf.place', $document), [
+        'cycle_token' => $cycle->public_id,
+        'source_sha256' => $cycle->original_sha256,
+        'confirmed' => 1,
+        'positions' => $positions,
+    ])->assertSessionHasNoErrors();
+
+    $saved = $document->currentCycle()->signatures()->first()->fresh();
+    expect($saved->specimen_positions['1']['x'])->toBe(40.0);
+    expect($saved->specimen_positions['2']['x'])->toBe(300.0);
+    expect($saved->x)->toBe(40.0);
+
+    $missing = $positions;
+    unset($missing[0]['specimen_positions'][2]);
+    $this->actingAs($owner)->put(route('documents.pdf.place', $document), [
+        'cycle_token' => $cycle->public_id,
+        'source_sha256' => $cycle->original_sha256,
+        'confirmed' => 1,
+        'positions' => $missing,
+    ])->assertSessionHasErrors('positions');
 });
 
 test('newly created documents save the PDF workflow before redirecting to the document list', function () {

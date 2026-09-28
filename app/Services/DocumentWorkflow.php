@@ -166,7 +166,8 @@ class DocumentWorkflow {
                             'width',
                             'height',
                             'specimen_scope',
-                            'specimen_pages'
+                            'specimen_pages',
+                            'specimen_positions'
                         ]);
                     }
                     $cycle->signatures()->create([
@@ -182,6 +183,7 @@ class DocumentWorkflow {
                             ? $position['specimen_scope'] ?? 'all_pages'
                             : 'all_pages',
                         'specimen_pages' => is_array($position) ? $position['specimen_pages'] ?? null : null,
+                        'specimen_positions' => is_array($position) ? $position['specimen_positions'] ?? null : null,
                         'width' => SpecimenTemplate::QR_SIZE,
                         'height' => SpecimenTemplate::QR_SIZE,
                         'placement_source' => $matches ? 'placeholder' : 'manual'
@@ -349,7 +351,10 @@ class DocumentWorkflow {
                 foreach ($selectedPages as $pageNumber) {
                     $pagePosition = $rawPagePositions[(string) $pageNumber]
                         ?? $rawPagePositions[$pageNumber]
-                        ?? $basePosition;
+                        ?? null;
+                    if ($scope !== 'selected_pages') {
+                        $pagePosition ??= $basePosition;
+                    }
                     if (! isset($pagePosition['x'], $pagePosition['y'])) {
                         throw ValidationException::withMessages([
                             'positions' => 'Posisi spesimen setiap halaman terpilih wajib ditentukan.'

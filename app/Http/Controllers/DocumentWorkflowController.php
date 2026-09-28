@@ -44,10 +44,7 @@ class DocumentWorkflowController extends Controller
         }
 
         return redirect()
-            ->route(
-                'documents.show',
-                $document
-            )
+            ->route('documents.index')
             ->with(
                 'success',
                 $document->isWaitingApproval()

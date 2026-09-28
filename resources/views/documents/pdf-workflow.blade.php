@@ -53,11 +53,11 @@
         data-pages="{{ json_encode($cycle->pdf_metadata['pages']) }}"
         data-steps="{{ json_encode($specimenSteps) }}">
         <h2 class="text-lg font-semibold">2. Periksa posisi QR pada preview</h2>
-        <p class="text-sm text-slate-600">Pilih signer, cakupan halaman, lalu pilih beberapa halaman bila diperlukan. Klik area kosong atau geser blok pada PDF untuk menentukan posisi. Untuk <strong>Semua halaman</strong>, posisi yang dipilih menjadi posisi yang sama pada setiap halaman. Untuk <strong>beberapa halaman</strong>, pilih halaman satu per satu lalu atur posisi masing-masing.</p>
+        <p class="text-sm text-slate-600">Pilih signer, cakupan halaman, lalu pilih beberapa halaman bila diperlukan. Klik area kosong atau geser blok pada PDF untuk menentukan posisi. Untuk <strong>Semua halaman</strong>, posisi yang dipilih menjadi posisi yang sama pada setiap halaman. Untuk <strong>beberapa halaman</strong>, dropdown preview hanya menampilkan halaman yang dicentang dan setiap halaman wajib diatur secara terpisah.</p>
         <div class="z-10 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-0 lg:grid-cols-6">
             <label class="text-sm">Signer <select data-active-signer class="mt-1 block w-full min-w-0 rounded border border-slate-300 p-2"></select></label>
             <label class="text-sm">Cakupan QR <select data-scope class="mt-1 block w-full min-w-0 rounded border border-slate-300 p-2"><option value="all_pages">Semua halaman</option><option value="selected_pages">Pilih beberapa halaman</option></select></label>
-            <label class="text-sm">Preview halaman <select data-page class="mt-1 block w-full min-w-0 rounded border border-slate-300 p-2"></select></label>
+            <label class="text-sm">Preview halaman terpilih <select data-page class="mt-1 block w-full min-w-0 rounded border border-slate-300 p-2"></select></label>
             <label class="text-sm">Zoom <select data-zoom class="mt-1 block w-full min-w-0 rounded border border-slate-300 p-2"><option value="1">Pas halaman</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option></select></label>
             <label class="text-sm">Format spesimen <select data-format class="mt-1 w-full rounded border border-slate-300 p-2"><option value="framed">1. QR Code dengan Teks</option><option value="qr_2cm">2. QR Code (2 × 2 cm)</option><option value="qr_3cm">3. QR Code (3 × 3 cm)</option></select></label>
             <button type="button" data-reset-position class="self-end rounded-lg border border-blue-200 bg-blue-50 p-2 text-sm text-blue-800">Letakkan di tengah halaman</button>

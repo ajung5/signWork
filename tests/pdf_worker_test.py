@@ -246,9 +246,15 @@ class PdfWorkerTest(unittest.TestCase):
             doc.save(source)
         step = {'sequence': 1, 'placeholder': '${tte:signer:1}', 'name_snapshot': 'Signer 1',
                 'page': 1, 'specimen_pages': [1, 3], 'x': 30, 'y': 100,
-                'specimen_format': 'qr_2cm', 'specimen_scope': 'selected_pages'}
+                'specimen_format': 'qr_2cm', 'specimen_scope': 'selected_pages',
+                'specimen_positions': {
+                    '1': {'x': 30, 'y': 100},
+                    '3': {'x': 30, 'y': 100},
+                }}
         geometry = worker.specimens.layout(step)
         step.update(width=geometry['width'], height=geometry['height'])
+        for position in step['specimen_positions'].values():
+            position.update(width=geometry['width'], height=geometry['height'])
         worker.run({'action': 'prepare', 'input': str(source), 'output': str(self.output), 'steps': [step],
                     'specimen_version': 1, 'verification_url': 'https://example.test/verify/demo'})
         signed = Path(self.directory.name) / 'selected-pages.pdf'

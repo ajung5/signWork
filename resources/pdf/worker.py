@@ -66,10 +66,10 @@ def specimen_pages(step, total_pages):
 
 
 def specimen_position(step, page_number):
-    """Return the page-specific position, falling back to legacy x/y fields."""
+    """Return the page-specific position, with legacy fallback only for global scope."""
     positions = step.get('specimen_positions') or {}
     position = positions.get(str(page_number), positions.get(page_number))
-    if position is None:
+    if position is None and step.get('specimen_scope') != 'selected_pages':
         position = step
     try:
         return {key: float(position[key]) for key in ['x', 'y', 'width', 'height']}

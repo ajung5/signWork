@@ -57,7 +57,7 @@ ready(() => {
         const saved = step.specimen_scope === 'selected_pages'
             ? step.specimen_positions?.[String(pageNumber)] ?? step.specimen_positions?.[pageNumber]
             : null;
-        const position = saved || step;
+        const position = step.specimen_scope === 'selected_pages' ? saved : step;
         if (!position) return null;
         return {
             x: position.x === null || position.x === undefined ? null : Number(position.x),
@@ -81,19 +81,30 @@ ready(() => {
         step.width = normalized.width;
         step.height = normalized.height;
     };
-    const materializePagePositions = (step) => {
+    const seedSelectedPagePosition = (step, pageNumber) => {
         if (step.specimen_scope !== 'selected_pages') return;
         step.specimen_positions ??= {};
-        selectedPageNumbers(step).forEach((pageNumber) => {
-            if (!step.specimen_positions[String(pageNumber)] && hasCoordinates(step)) {
-                step.specimen_positions[String(pageNumber)] = pagePosition(step, pageNumber);
-            }
-        });
+        const key = String(pageNumber);
+        if (step.specimen_positions[key] || !hasCoordinates(step)) return;
+        step.specimen_positions[key] = {
+            x: Number(step.x), y: Number(step.y),
+            width: Number(step.width), height: Number(step.height),
+        };
+    };
+    const defaultPosition = (step, targetPage) => ({
+        x: Math.max(0, (targetPage.width - Number(step.width)) / 2),
+        y: Math.max(0, (targetPage.height - Number(step.height)) / 2),
+        width: Number(step.width), height: Number(step.height),
+    });
+    const materializeInitialPagePosition = (step) => {
+        if (step.specimen_scope === 'selected_pages' && step.page) {
+            seedSelectedPagePosition(step, Number(step.page));
+        }
     };
     const ensureCurrentSelected = (step) => {
         const current = Number(pageSelect.value);
         step.specimen_pages = [...new Set([...selectedPageNumbers(step), current].filter((value) => value > 0))].sort((a, b) => a - b);
-        materializePagePositions(step);
+        seedSelectedPagePosition(step, current);
         step.page = step.specimen_pages[0] || current;
     };
     steps.forEach((step) => {
@@ -112,14 +123,24 @@ ready(() => {
             step.width = choice.width;
             step.height = choice.height;
         }
-        materializePagePositions(step);
+        materializeInitialPagePosition(step);
     });
     let loaded = false;
     let drag = null;
     steps.forEach((step, i) => signerSelect.add(new Option(`${i + 1}. ${step.name_snapshot}`, i)));
-    pages.forEach(page => pageSelect.add(new Option(page.page, page.page)));
     const active = () => steps[Number(signerSelect.value)];
     const page = () => pageByNumber(pageSelect.value);
+    const renderPageOptions = () => {
+        const step = active();
+        const current = Number(pageSelect.value);
+        const available = step?.specimen_scope === 'selected_pages'
+            ? selectedPageNumbers(step)
+            : pages.map((item) => Number(item.page));
+        pageSelect.replaceChildren();
+        available.forEach((pageNumber) => pageSelect.add(new Option(pageNumber, pageNumber)));
+        if (available.length && !available.includes(current)) pageSelect.value = available[0];
+    };
+    renderPageOptions();
     const issues = () => {
         const problems = [];
         steps.forEach((step, i) => {
@@ -241,10 +262,21 @@ ready(() => {
             checkbox.checked = selected.has(Number(item.page));
             checkbox.addEventListener('change', () => {
                 step.specimen_scope = 'selected_pages';
-                step.specimen_pages = [...pagePicker.querySelectorAll('input:checked')].map((input) => Number(input.value)).sort((a, b) => a - b);
-                materializePagePositions(step);
+                const checked = [...pagePicker.querySelectorAll('input:checked')].map((input) => Number(input.value));
+                if (!checked.length) {
+                    checkbox.checked = true;
+                    return;
+                }
+                step.specimen_pages = [...new Set(checked)].sort((a, b) => a - b);
                 step.page = step.specimen_pages[0] || null;
-                draw();
+                renderPageOptions();
+                const nextPage = checkbox.checked ? Number(checkbox.value) : step.specimen_pages[0];
+                if (nextPage && Number(pageSelect.value) !== nextPage) {
+                    pageSelect.value = nextPage;
+                    load();
+                } else {
+                    draw();
+                }
             });
             chip.append(checkbox, document.createTextNode(`Halaman ${item.page}`));
             pagePicker.append(chip);
@@ -253,6 +285,7 @@ ready(() => {
     const controls = () => {
         format.value = active().specimen_format;
         scope.value = active().specimen_scope;
+        renderPageOptions();
         renderPagePicker();
         const choice = active().layouts[active().specimen_format];
         root.querySelector('[data-dimension-hint]').textContent = choice?.error || (choice ? `Ukuran otomatis: ${(choice.width / pointsPerCm).toFixed(2)} × ${(choice.height / pointsPerCm).toFixed(2)} cm. Posisi disimpan per halaman saat memilih beberapa halaman.` : 'Format spesimen tidak tersedia. Muat ulang halaman.');
@@ -269,7 +302,7 @@ ready(() => {
         const currentPage = page();
         if (!currentPage) return;
         if (step.specimen_scope === 'selected_pages') ensureCurrentSelected(step);
-        const current = pagePosition(step, currentPage.page) || {x: 0, y: 0, width: step.width, height: step.height};
+        const current = pagePosition(step, currentPage.page) || defaultPosition(step, currentPage);
         const position = {
             ...current,
             x: Math.floor(Math.max(0, Math.min(currentPage.width - current.width, (event.clientX - bounds.left) / bounds.width * currentPage.width - offset.x)) * 100) / 100,

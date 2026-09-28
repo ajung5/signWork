@@ -126,6 +126,9 @@ test('selected-pages scope accepts multiple page checkboxes and submits them', (
     const pageThree = ui.field('page-picker').children.find((label) => label.children?.[0]?.value === 3);
     pageThree.children[0].checked = true;
     pageThree.children[0].dispatchEvent({ type: 'change' });
+    assert.deepEqual(ui.field('page').children.map((option) => Number(option.value)), [1, 3]);
+    ui.fire('page-image', 'load');
+    ui.fire('reset-position', 'click');
     const selected = ui.field('position-inputs').children
         .filter((input) => input.name === 'positions[0][specimen_pages][]')
         .map((input) => Number(input.value));
