@@ -33,6 +33,42 @@ test('user dashboard does not show the create document button', function () {
         ->assertDontSee('Buat Dokumen');
 });
 
+test('dashboard highlights the next action for a PDF draft', function () {
+    $user = $this->signIn();
+
+    Document::factory()
+        ->for($user, 'owner')
+        ->create([
+            'title' => 'Draft Perlu Diselesaikan',
+            'requires_pdf_workflow' => true,
+        ]);
+
+    $this->get(route('dashboard'))
+        ->assertOk()
+        ->assertSee('Tugas Saya Berikutnya')
+        ->assertSee('Draft Perlu Diselesaikan')
+        ->assertSee('Atur dokumen');
+});
+
+test('dashboard highlights the assigned verification task', function () {
+    $user = $this->signIn();
+    $owner = User::factory()->create();
+
+    Document::factory()
+        ->for($owner, 'owner')
+        ->for($user, 'approver')
+        ->create([
+            'title' => 'Menunggu Verifikasi Saya',
+            'status' => DocumentStatus::WaitingApproval,
+        ]);
+
+    $this->get(route('dashboard'))
+        ->assertOk()
+        ->assertSee('Tugas Saya Berikutnya')
+        ->assertSee('Menunggu Verifikasi Saya')
+        ->assertSee('Verifikasi dokumen');
+});
+
 test('dashboard includes sent final document where user is destination', function () {
     $user = $this->signIn();
     $owner = User::factory()->create();

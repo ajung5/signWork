@@ -268,7 +268,8 @@
 
                 @if ($document->isWaitingApproval())
                     @can('approve', $document)
-                        <div class="overflow-hidden rounded-xl border border-amber-200 bg-white shadow-sm">
+                        <div id="workflow-action"
+                            class="scroll-mt-6 overflow-hidden rounded-xl border border-amber-200 bg-white shadow-sm">
                             <div class="border-b border-amber-100 bg-amber-50 px-5 py-4 sm:px-6">
                                 <h2 class="font-semibold text-slate-900">
                                     Keputusan Verifikasi

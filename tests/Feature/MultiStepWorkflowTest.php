@@ -69,11 +69,20 @@ test('full workflow runs two approvals and two mock signatures and verifies the 
     expect($document->fresh()->currentCycle()->prepared_path)->not->toBeNull();
     $this->actingAs($owner)->get(route('documents.show', $document))
         ->assertOk()
+        ->assertSee('data-workflow-timeline', false)
+        ->assertSee('Draft')
+        ->assertSee('Verifikasi')
+        ->assertSee('Tanda tangan')
+        ->assertSee('Dikirim')
         ->assertSee('Preview dokumen dan posisi spesimen')
         ->assertSee('Preview PDF tahap berjalan')
         ->assertDontSee('Buka verifikasi QR')
         ->assertDontSee('Preview dokumen tahap ini')
         ->assertDontSee('Preview dokumen sumber');
+    $this->actingAs($approvers[0])->get(route('documents.show', $document))
+        ->assertOk()
+        ->assertSee('id="workflow-action"', false)
+        ->assertSee('Keputusan Verifikasi');
     $this->actingAs($approvers[1])->post(route('documents.approve', $document), ['cycle_token' => $token])->assertForbidden();
     foreach ($approvers as $approver) {
         $this->actingAs($approver)->post(route('documents.approve', $document), ['cycle_token' => $token])->assertSessionHasNoErrors();

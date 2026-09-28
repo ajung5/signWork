@@ -45,6 +45,57 @@
         </div>
     </div>
 
+    @if ($taskDocuments->isNotEmpty())
+        <section class="mt-6 rounded-xl border border-blue-200 bg-blue-50/70 p-5 shadow-sm sm:p-6"
+            data-dashboard-tasks>
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-blue-700">
+                        Prioritas Anda
+                    </p>
+
+                    <h2 class="mt-1 text-lg font-semibold text-slate-900">
+                        Tugas Saya Berikutnya
+                    </h2>
+
+                    <p class="mt-1 text-sm text-slate-600">
+                        Aksi yang paling dekat untuk melanjutkan workflow dokumen.
+                    </p>
+                </div>
+
+                <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-800 ring-1 ring-blue-200">
+                    {{ $taskDocuments->count() }} tugas
+                </span>
+            </div>
+
+            <div class="mt-4 grid gap-3 lg:grid-cols-2">
+                @foreach ($taskDocuments as $task)
+                    <article class="rounded-xl border border-blue-100 bg-white p-4 shadow-sm" data-task-card>
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="truncate text-sm font-semibold text-slate-900">
+                                    {{ $task['document']->title }}
+                                </p>
+
+                                <p class="mt-1 text-xs leading-5 text-slate-500">
+                                    {{ $task['description'] }}
+                                </p>
+                            </div>
+
+                            <x-status-badge :status="$task['document']->status" />
+                        </div>
+
+                        <a href="{{ $task['url'] }}"
+                            class="mt-4 inline-flex items-center justify-center rounded-lg bg-blue-700 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-blue-800">
+                            {{ $task['label'] }}
+                            <span aria-hidden="true" class="ml-2">→</span>
+                        </a>
+                    </article>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
     <section class="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <a href="{{ route('documents.index') }}"
             class="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
