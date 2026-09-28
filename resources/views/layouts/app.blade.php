@@ -182,6 +182,7 @@
                             <div class="absolute right-0 z-30 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 text-left shadow-lg">
                                 <a href="{{ route('profile.show') }}" class="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-blue-50">Lihat Profil</a>
                                 <a href="{{ route('profile.edit') }}" class="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-blue-50">Edit Profil</a>
+                                <a href="{{ route('profile.password.edit') }}" class="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-blue-50">Ganti Password</a>
                             </div>
                         </details>
 

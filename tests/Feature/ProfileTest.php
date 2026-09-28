@@ -3,12 +3,19 @@
 use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 
 uses(RefreshDatabase::class);
 
 test('guests cannot read or change profiles', function () {
     $this->get(route('profile.edit'))->assertRedirect(route('login'));
     $this->put(route('profile.update'), ['name' => 'Unauthorized'])->assertRedirect(route('login'));
+    $this->get(route('profile.password.edit'))->assertRedirect(route('login'));
+    $this->put(route('profile.password.update'), [
+        'current_password' => 'password',
+        'password' => 'new-password-123',
+        'password_confirmation' => 'new-password-123',
+    ])->assertRedirect(route('login'));
 });
 
 test('authenticated users can view their own profile', function (UserRole $role) {
@@ -25,6 +32,51 @@ test('authenticated users can open the read-only profile view and edit link', fu
         ->assertSee('Profil Saya')
         ->assertSee('Edit Profil')
         ->assertSee('Analis');
+});
+
+test('authenticated users can open the password change menu', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('profile.show'))
+        ->assertOk()
+        ->assertSee('Ganti Password')
+        ->assertSee(route('profile.password.edit'), false);
+
+    $this->get(route('profile.password.edit'))
+        ->assertOk()
+        ->assertSee('Password saat ini')
+        ->assertSee('Password baru');
+});
+
+test('authenticated users can change their password with the current password', function () {
+    $user = User::factory()->create(['password' => 'password']);
+
+    $this->actingAs($user)
+        ->put(route('profile.password.update'), [
+            'current_password' => 'password',
+            'password' => 'new-password-123',
+            'password_confirmation' => 'new-password-123',
+        ])
+        ->assertRedirect(route('profile.password.edit'))
+        ->assertSessionHas('success', 'Password berhasil diubah.');
+
+    expect(Hash::check('new-password-123', $user->fresh()->password))->toBeTrue();
+});
+
+test('password change rejects an incorrect current password', function () {
+    $user = User::factory()->create(['password' => 'password']);
+    $before = $user->password;
+
+    $this->actingAs($user)
+        ->put(route('profile.password.update'), [
+            'current_password' => 'wrong-password',
+            'password' => 'new-password-123',
+            'password_confirmation' => 'new-password-123',
+        ])
+        ->assertSessionHasErrors('current_password');
+
+    expect($user->fresh()->password)->toBe($before);
 });
 
 test('profile updates only the authenticated identity fields and displays modal feedback', function () {

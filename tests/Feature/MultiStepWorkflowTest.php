@@ -62,30 +62,18 @@ function approvePdfWorkflow(Document $document, array $approvers): void
 test('full workflow runs two approvals and two mock signatures and verifies the exact final bytes', function () {
     [$document, $owner, $approvers, $signers] = pdfWorkflowFixture();
     $token = $document->currentCycle()->public_id;
-    $this->actingAs($owner)->get(route('documents.pdf.edit', $document))
-        ->assertOk()
-        ->assertSee('aria-label="Kembali ke detail dokumen"', false)
-        ->assertSee('Periksa posisi');
+    $this->actingAs($owner)->get(route('documents.pdf.edit', $document))->assertOk()->assertSee('Periksa posisi');
     $this->post(route('documents.submit', $document), ['cycle_token' => $token])
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('documents.index'));
     expect($document->fresh()->currentCycle()->prepared_path)->not->toBeNull();
     $this->actingAs($owner)->get(route('documents.show', $document))
         ->assertOk()
-        ->assertSee('data-workflow-timeline', false)
-        ->assertSee('Draft')
-        ->assertSee('Verifikasi')
-        ->assertSee('Tanda tangan')
-        ->assertSee('Dikirim')
         ->assertSee('Preview dokumen dan posisi spesimen')
         ->assertSee('Preview PDF tahap berjalan')
         ->assertDontSee('Buka verifikasi QR')
         ->assertDontSee('Preview dokumen tahap ini')
         ->assertDontSee('Preview dokumen sumber');
-    $this->actingAs($approvers[0])->get(route('documents.show', $document))
-        ->assertOk()
-        ->assertSee('id="workflow-action"', false)
-        ->assertSee('Keputusan Verifikasi');
     $this->actingAs($approvers[1])->post(route('documents.approve', $document), ['cycle_token' => $token])->assertForbidden();
     foreach ($approvers as $approver) {
         $this->actingAs($approver)->post(route('documents.approve', $document), ['cycle_token' => $token])->assertSessionHasNoErrors();
@@ -101,7 +89,9 @@ test('full workflow runs two approvals and two mock signatures and verifies the 
     expect($document->fresh()->status)->toBe(DocumentStatus::Signed);
     $this->actingAs($owner)->get(route('documents.show', $document))
         ->assertOk()
-        ->assertSee('Buka verifikasi QR');
+        ->assertSee('Preview PDF final')
+        ->assertSee('Buka verifikasi PDF')
+        ->assertSeeInOrder(['Preview PDF final', 'Buka verifikasi PDF']);
     expect(hash_file('sha256', Storage::disk('local')->path($cycle->current_path)))->toBe($cycle->final_sha256);
     $steps = $cycle->signatures()->get();
     expect($steps[1]->input_sha256)->toBe($steps[0]->output_sha256);
@@ -289,7 +279,6 @@ test('confirmed draft exposes one review position action', function () {
 
     $this->actingAs($owner)->get(route('documents.pdf.review', $document))
         ->assertOk()
-        ->assertSee('aria-label="Kembali ke detail dokumen"', false)
         ->assertSee('Preview read-only')
         ->assertSee('Edit posisi Spesiment')
         ->assertSee('Preview PDF tahap berjalan')

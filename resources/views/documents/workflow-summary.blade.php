@@ -16,57 +16,6 @@
             @endif
         @endcan
     </div>
-
-    @php
-        $workflowStage = match (true) {
-            $document->sent_at !== null => 4,
-            $document->isSigned() => 3,
-            $document->isWaitingSignature() || $document->isSigning() || $document->isApproved() => 2,
-            $document->isWaitingApproval() || $document->isSubmitted() => 1,
-            default => 0,
-        };
-        $workflowSteps = [
-            ['label' => 'Draft', 'description' => 'Dokumen & peserta'],
-            ['label' => 'Verifikasi', 'description' => 'Pemeriksaan berurutan'],
-            ['label' => 'Tanda tangan', 'description' => 'TTE setiap signer'],
-            ['label' => 'Dikirim', 'description' => 'Masuk ke penerima'],
-        ];
-    @endphp
-
-    <div class="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4" data-workflow-timeline>
-        @foreach ($workflowSteps as $index => $step)
-            @php
-                $isComplete = $index < $workflowStage;
-                $isCurrent = $index === $workflowStage;
-            @endphp
-            <div @class([
-                'rounded-lg border p-3',
-                'border-emerald-200 bg-emerald-50' => $isComplete,
-                'border-blue-300 bg-blue-50 ring-1 ring-blue-200' => $isCurrent,
-                'border-slate-200 bg-slate-50' => !$isComplete && !$isCurrent,
-            ])>
-                <div class="flex items-center gap-2">
-                    <span @class([
-                        'flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold',
-                        'bg-emerald-600 text-white' => $isComplete,
-                        'bg-blue-700 text-white' => $isCurrent,
-                        'bg-slate-200 text-slate-500' => !$isComplete && !$isCurrent,
-                    ]) aria-hidden="true">
-                        {{ $isComplete ? '✓' : $index + 1 }}
-                    </span>
-
-                    <p class="text-sm font-semibold text-slate-900">
-                        {{ $step['label'] }}
-                    </p>
-                </div>
-
-                <p class="mt-2 text-xs text-slate-500">
-                    {{ $step['description'] }}
-                </p>
-            </div>
-        @endforeach
-    </div>
-
     @if (!$cycle)
         @if ($document->requires_pdf_workflow)
             <p class="text-sm text-blue-800">Langkah berikutnya: unggah PDF, tentukan urutan verifikator/signer, dan
@@ -96,14 +45,15 @@
                         <p class="mt-1 text-sm text-blue-800">Setiap tahap workflow dapat memeriksa PDF yang sedang
                             berjalan dan posisi specimen QR yang akan digunakan.</p>
                     </div>
-                    <a href="{{ route('documents.pdf.viewer', [$document, 'version' => $previewVersion]) }}"
-                        class="inline-flex shrink-0 items-center justify-center rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">{{ $previewLabel }}</a>
+                    <div class="flex shrink-0 flex-wrap items-center gap-2 sm:flex-nowrap">
+                        <a href="{{ route('documents.pdf.viewer', [$document, 'version' => $previewVersion]) }}"
+                            class="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">{{ $previewLabel }}</a>
+                        @if ($document->isSigned())
+                            <a href="{{ route('verification.show', $cycle->public_id) }}"
+                                class="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-violet-300 bg-violet-700 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-800">Buka verifikasi PDF</a>
+                        @endif
+                    </div>
                 </div>
-            </div>
-        @endif
-        @if ($document->isSigned())
-            <div class="flex flex-wrap items-center gap-3 text-sm">
-                <a href="{{ route('verification.show', $cycle->public_id) }}" class="preview-action">Buka verifikasi QR</a>
             </div>
         @endif
         <p class="break-all text-xs text-slate-500">Siklus {{ $cycle->number }} · SHA-256 sumber:
@@ -180,8 +130,7 @@
         </div>
         @can('sign', $document)
             <form action="{{ route('documents.sign', $document) }}" method="POST"
-                id="workflow-action" class="scroll-mt-6 space-y-3 rounded-lg border border-amber-200 p-4"
-                data-single-submit>
+                class="space-y-3 rounded-lg border border-amber-200 p-4" data-single-submit>
                 @csrf <input type="hidden" name="cycle_token" value="{{ $cycle->public_id }}">
                 <div class="rounded-lg bg-amber-50 p-3 text-sm">Gunakan passphrase demo <code
                         class="font-semibold">{{ config('signwork.mock_passphrase') }}</code>. Jangan masukkan passphrase
@@ -210,8 +159,7 @@
             <p class="text-sm text-slate-600">Signing selesai. Dokumen belum masuk inbox penerima sampai pemilik atau
                 signer terakhir menekan Kirim.</p>
             @can('send', $document)
-                <form method="POST" action="{{ route('documents.send', $document) }}" id="workflow-action"
-                    class="scroll-mt-6" data-single-submit>
+                <form method="POST" action="{{ route('documents.send', $document) }}" data-single-submit>
                     @csrf <input type="hidden" name="cycle_token" value="{{ $cycle->public_id }}">
                     <button class="rounded-lg bg-emerald-700 px-4 py-3 font-semibold text-white">Kirim dokumen final ke
                         {{ $document->destination?->name }}</button>
