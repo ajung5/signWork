@@ -33,7 +33,7 @@ class Document extends Model {
         'revision_count',
         'last_revised_at',
         'signed_at',
-        'requires_pdf_workflow' => true
+        'requires_pdf_workflow'
     ];
 
     protected static function booted(): void {
