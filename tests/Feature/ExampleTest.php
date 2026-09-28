@@ -1,7 +1,11 @@
 <?php
 
-test('the application returns a successful response', function () {
-    $response = $this->get('/');
+test('guest is redirected to login from dashboard', function () {
+    $response = $this->get(
+        route('dashboard')
+    );
 
-    $response->assertStatus(200);
+    $response->assertRedirect(
+        route('login')
+    );
 });

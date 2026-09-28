@@ -4,6 +4,232 @@
 @source '../../storage/framework/views/*.php';
 
 @theme {
+    --color-brand-navy: #425B9A;
+    --color-brand-sky: #76C0EC;
+    --color-brand-cream: #FFF6DC;
+    --color-brand-pink: #FF95A5;
+    --color-blue-50: #f0f3fa;
+    --color-blue-100: #e2e8f5;
+    --color-blue-200: #c3cfe8;
+    --color-blue-300: #a0b3d9;
+    --color-blue-400: #748ec2;
+    --color-blue-500: #5975ae;
+    --color-blue-600: #4b65a3;
+    --color-blue-700: #425B9A;
+    --color-blue-800: #35497b;
+    --color-blue-900: #293960;
+    --color-blue-950: #1d2945;
+    --color-indigo-50: #f0f3fa;
+    --color-indigo-100: #e2e8f5;
+    --color-indigo-200: #c3cfe8;
+    --color-indigo-300: #a0b3d9;
+    --color-indigo-400: #748ec2;
+    --color-indigo-500: #5975ae;
+    --color-indigo-600: #4b65a3;
+    --color-indigo-700: #425B9A;
+    --color-indigo-800: #35497b;
+    --color-indigo-900: #293960;
+    --color-indigo-950: #1d2945;
+    --color-violet-50: #f0f3fa;
+    --color-violet-100: #e2e8f5;
+    --color-violet-200: #c3cfe8;
+    --color-violet-300: #a0b3d9;
+    --color-violet-400: #748ec2;
+    --color-violet-500: #5975ae;
+    --color-violet-600: #4b65a3;
+    --color-violet-700: #425B9A;
+    --color-violet-800: #35497b;
+    --color-violet-900: #293960;
+    --color-violet-950: #1d2945;
+    --color-cyan-50: #f0f8fd;
+    --color-cyan-100: #e0f1fb;
+    --color-cyan-200: #bee1f5;
+    --color-cyan-300: #9ed2f0;
+    --color-cyan-400: #76C0EC;
+    --color-cyan-500: #489bcf;
+    --color-cyan-600: #287aa9;
+    --color-cyan-700: #23638a;
+    --color-cyan-800: #21516f;
+    --color-cyan-900: #203f55;
+    --color-cyan-950: #152a39;
+    --color-sky-50: #f0f8fd;
+    --color-sky-100: #e0f1fb;
+    --color-sky-200: #bee1f5;
+    --color-sky-300: #9ed2f0;
+    --color-sky-400: #76C0EC;
+    --color-sky-500: #489bcf;
+    --color-sky-600: #287aa9;
+    --color-sky-700: #23638a;
+    --color-sky-800: #21516f;
+    --color-sky-900: #203f55;
+    --color-sky-950: #152a39;
+    --color-amber-50: #FFF6DC;
+    --color-amber-100: #ffefc2;
+    --color-amber-200: #f5dfa0;
+    --color-amber-300: #e6c77a;
+    --color-amber-400: #c8a34d;
+    --color-amber-500: #a78432;
+    --color-amber-600: #866621;
+    --color-amber-700: #72531c;
+    --color-amber-800: #5f451d;
+    --color-amber-900: #503a1c;
+    --color-amber-950: #30220e;
+    --color-yellow-50: #FFF6DC;
+    --color-yellow-100: #ffefc2;
+    --color-yellow-200: #f5dfa0;
+    --color-yellow-300: #e6c77a;
+    --color-yellow-400: #c8a34d;
+    --color-yellow-500: #a78432;
+    --color-yellow-600: #866621;
+    --color-yellow-700: #72531c;
+    --color-yellow-800: #5f451d;
+    --color-yellow-900: #503a1c;
+    --color-yellow-950: #30220e;
+    --color-rose-50: #fff1f3;
+    --color-rose-100: #ffe3e8;
+    --color-rose-200: #ffc7d0;
+    --color-rose-300: #FF95A5;
+    --color-rose-400: #e8778d;
+    --color-rose-500: #cf536f;
+    --color-rose-600: #b53858;
+    --color-rose-700: #952c48;
+    --color-rose-800: #7d2940;
+    --color-rose-900: #682639;
+    --color-rose-950: #3c1220;
+    --color-red-50: #fff1f3;
+    --color-red-100: #ffe3e8;
+    --color-red-200: #ffc7d0;
+    --color-red-300: #FF95A5;
+    --color-red-400: #e8778d;
+    --color-red-500: #cf536f;
+    --color-red-600: #b53858;
+    --color-red-700: #952c48;
+    --color-red-800: #7d2940;
+    --color-red-900: #682639;
+    --color-red-950: #3c1220;
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+@layer base {
+    html {
+        background-color: #fffbef;
+    }
+
+    body {
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+        font: inherit;
+    }
+
+    button:not(:disabled),
+    [role='button']:not(:disabled) {
+        cursor: pointer;
+    }
+}
+
+@layer base {
+    :where(a, button, input, select, textarea):focus-visible {
+        outline: 3px solid var(--color-brand-navy);
+        outline-offset: 3px;
+    }
+}
+
+@layer components {
+    .app-shell {
+        background: #fffbef;
+    }
+
+    .app-sidebar {
+        border-top: 4px solid var(--color-brand-navy);
+        background: linear-gradient(180deg, #fff 0%, #f0f8fd 100%);
+    }
+
+    .app-header {
+        border-top: 4px solid var(--color-brand-pink);
+    }
+}
+
+@layer components {
+    .sidebar-control[hidden], .sidebar-backdrop[hidden] { display: none; }
+    .sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        background: rgb(29 41 69 / 40%);
+    }
+    .sidebar-ready .app-sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        z-index: 50;
+        width: 18rem;
+        max-width: calc(100vw - 3rem);
+        height: 100dvh;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        transform: translateX(-100%);
+        visibility: hidden;
+        transition: transform 200ms ease, margin-left 200ms ease, visibility 200ms;
+    }
+    .sidebar-ready[data-sidebar-open='true'] .app-sidebar {
+        transform: translateX(0);
+        visibility: visible;
+    }
+    @media (min-width: 64rem) {
+        .sidebar-ready .app-sidebar {
+            position: sticky;
+            top: 0;
+            margin-left: -18rem;
+        }
+        .sidebar-ready[data-sidebar-open='true'] .app-sidebar { margin-left: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .sidebar-ready .app-sidebar { transition: none; }
+    }
+}
+
+@layer components {
+    .feedback-modal {
+        position: fixed;
+        inset: 0;
+        margin: auto;
+        width: min(30rem, calc(100vw - 2rem));
+        max-height: calc(100dvh - 2rem);
+        overflow-y: auto;
+    }
+    .feedback-modal::backdrop {
+        background: rgb(29 41 69 / 45%);
+        backdrop-filter: blur(3px);
+    }
+}
+
+@layer components {
+    .preview-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .75rem;
+        min-height: 3.25rem;
+        padding: .85rem 1.1rem;
+        border: 1px solid var(--color-blue-200);
+        border-radius: .85rem;
+        background: linear-gradient(135deg, var(--color-blue-50), var(--color-cyan-100));
+        color: var(--color-blue-900);
+        font-weight: 600;
+        text-align: center;
+        box-shadow: 0 2px 5px rgb(66 91 154 / 8%);
+        transition: background 150ms, box-shadow 150ms;
+    }
+    .preview-action::after { content: '↗'; font-size: 1.15rem; }
+    .preview-action:hover {
+        background: var(--color-cyan-200);
+        box-shadow: 0 4px 10px rgb(66 91 154 / 14%);
+    }
 }

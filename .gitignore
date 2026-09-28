@@ -21,7 +21,31 @@
 /storage/*.key
 /storage/pail
 /vendor
+# Local Laravel database/runtime artifact
+/laravel
 _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+
+# Virtual environment lokal
+.venv/
+venv/
+env/
+ENV/
+
+# Python package build
+*.egg-info/

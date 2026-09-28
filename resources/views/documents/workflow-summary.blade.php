@@ -1,0 +1,71 @@
+<section class="mt-6 space-y-4 rounded-xl border border-slate-200 bg-white p-5">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 class="font-semibold">PDF & Alur Berurutan</h2>
+        @can('update', $document)<a href="{{ route('documents.pdf.edit', $document) }}" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-800">Atur PDF, peserta & posisi QR</a>@endcan
+    </div>
+    @if(!$cycle)
+        @if($document->requires_pdf_workflow)
+            <p class="text-sm text-blue-800">Langkah berikutnya: unggah PDF, tentukan urutan verifikator/signer, dan konfirmasi posisi QR melalui tombol pengaturan di atas.</p>
+        @else
+        <p class="text-sm text-slate-600">Dokumen ini masih memakai alur metadata lama. Untuk workflow PDF, buka pengaturan PDF saat Draft atau setelah dikembalikan. Mode lama tidak menghasilkan TTE atau PDF final.</p>
+        @endif
+    @else
+        <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Provider: MOCK — simulasi, bukan TTE BSrE yang sah. QR membandingkan hash file; bukan validasi sertifikat elektronik.</p>
+        <div class="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-3">
+            <a href="{{ route('documents.pdf.viewer', $document) }}" class="preview-action">Preview dokumen sumber</a>
+            @if($cycle->current_path && $cycle->status !== 'signed')<a href="{{ route('documents.pdf.viewer', [$document, 'version' => 'current']) }}" class="preview-action">Preview PDF siap signing / tahap terakhir</a>@endif
+            @if($cycle->status === 'signed')<a href="{{ route('documents.pdf.viewer', [$document, 'version' => 'final']) }}" class="preview-action">Preview PDF final simulasi</a>@endif
+            @if($cycle->submitted_at)<a href="{{ route('verification.show', $cycle->public_id) }}" class="preview-action">Halaman verifikasi QR</a>@endif
+        </div>
+        <p class="break-all text-xs text-slate-500">Siklus {{ $cycle->number }} · SHA-256 sumber: {{ $cycle->original_sha256 }}</p>
+        @if($document->isDraft() && !$cycle->positions_confirmed_at)<p class="text-sm text-red-700">Posisi QR belum dikonfirmasi. Buka pengaturan PDF sebelum mengajukan.</p>@endif
+        <div class="grid gap-5 md:grid-cols-2">
+            @foreach(['approvals' => 'Verifikasi', 'signatures' => 'Tanda Tangan'] as $relation => $label)
+                <div><h3 class="mb-2 text-sm font-semibold">{{ $label }}</h3><ol class="space-y-2 text-sm">
+                    @foreach($cycle->$relation as $step)
+                        <li class="rounded-xl border border-slate-200 bg-slate-50 p-4"><div class="flex flex-wrap items-center justify-between gap-3"><span class="font-medium">{{ $step->sequence }}. {{ $step->name_snapshot }}</span> <x-workflow-status :status="$step->status" /></div>
+                        @if($step->acted_at)<p class="mt-1 text-xs text-slate-500">{{ $step->acted_at->timezone('Asia/Jakarta')->format('d M Y H:i:s') }} WIB</p>@endif
+                        @if($step->rejection_reason)<p class="mt-1 text-red-700">{{ $step->rejection_reason }}</p>@endif
+                        </li>
+                    @endforeach
+                </ol></div>
+            @endforeach
+        </div>
+        @can('sign', $document)
+            <form action="{{ route('documents.sign', $document) }}" method="POST" class="space-y-3 rounded-lg border border-amber-200 p-4" data-single-submit>
+                @csrf <input type="hidden" name="cycle_token" value="{{ $cycle->public_id }}">
+                <div class="rounded-lg bg-amber-50 p-3 text-sm">Gunakan passphrase demo <code class="font-semibold">{{ config('signwork.mock_passphrase') }}</code>. Jangan masukkan passphrase BSrE asli.</div>
+                <label class="block text-sm font-medium" for="sign-passphrase">Passphrase simulasi</label>
+                <input id="sign-passphrase" name="passphrase" type="password" required maxlength="200" autocomplete="off" class="w-full rounded-lg border border-slate-300 p-3" aria-describedby="passphrase-help">
+                <p id="passphrase-help" class="text-xs text-slate-600">Diverifikasi saat tombol ditekan. Jika salah, proses tidak dilanjutkan. Nilainya tidak disimpan atau ditampilkan kembali.</p>
+                <label class="flex gap-2 text-sm"><input type="checkbox" name="mock_acknowledged" value="1" required>Saya memahami bahwa aksi ini hanya simulasi signing dan tidak menggunakan sertifikat BSrE.</label>
+                <button class="rounded-lg bg-violet-700 px-4 py-2 font-semibold text-white">Jalankan simulasi tanda tangan</button>
+            </form>
+        @endcan
+        @if($cycle->qr_mode === 'legacy_all')<p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Siklus lama: QR sudah dipasang dengan metode sebelumnya. File dan bukti yang telah ditandatangani dipertahankan. QR bertahap berlaku untuk siklus baru/belum ditandatangani.</p>@endif
+        @if($document->sent_at)
+            <p class="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Dikirim ke penerima pada {{ $document->sent_at->timezone('Asia/Jakarta')->format('d M Y H:i') }} WIB.</p>
+        @elseif($document->isSigned())
+            <p class="text-sm text-slate-600">Signing selesai. Dokumen belum masuk inbox penerima sampai pemilik atau signer terakhir menekan Kirim.</p>
+            @can('send', $document)
+            <form method="POST" action="{{ route('documents.send', $document) }}" data-single-submit>
+                @csrf <input type="hidden" name="cycle_token" value="{{ $cycle->public_id }}">
+                <button class="rounded-lg bg-emerald-700 px-4 py-3 font-semibold text-white">Kirim dokumen final ke {{ $document->destination?->name }}</button>
+            </form>
+            @endcan
+        @endif
+        @if($cycle->final_sha256)<p class="break-all text-xs text-slate-600">SHA-256 final: {{ $cycle->final_sha256 }}</p>@endif
+        @if($cycles->count() > 1)
+            <details><summary class="cursor-pointer text-sm font-semibold">Riwayat siklus sebelumnya</summary>
+                @foreach($cycles as $history)
+                    @if($history->number !== $cycle->number)
+                    <div class="mt-3 rounded-lg border border-slate-200 p-3 text-sm"><div class="flex flex-wrap items-center gap-2"><strong>Siklus {{ $history->number }}</strong><x-workflow-status :status="$history->status" /></div>
+                        <p class="break-all text-xs">SHA-256 sumber: {{ $history->original_sha256 }}</p>
+                        @foreach($history->approvals as $step)<p>{{ $step->sequence }}. {{ $step->name_snapshot }} <x-workflow-status :status="$step->status" /> {{ $step->rejection_reason }}</p>@endforeach
+                    </div>
+                    @endif
+                @endforeach
+            </details>
+        @endif
+    @endif
+</section>
