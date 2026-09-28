@@ -230,10 +230,11 @@ ready(() => {
     };
     const issueSummary = ({missingCount, invalidCount, configurationCount, missingBySigner, invalidBySigner, configurationMessages, selectionProblems}) => {
         const summaries = [];
-        missingBySigner.forEach((pageNumbers, index) => summaries.push(`Signer ${index + 1}: ${pageNumbers.length.toLocaleString('id-ID')} halaman belum ditempatkan.`));
-        invalidBySigner.forEach((pageNumbers, index) => summaries.push(`Signer ${index + 1}: ${pageNumbers.length.toLocaleString('id-ID')} halaman perlu diperbaiki.`));
-        selectionProblems.forEach((index) => summaries.push(`Signer ${index + 1}: pilih minimal satu halaman.`));
-        configurationMessages.forEach(({index}) => summaries.push(`Signer ${index + 1}: profil atau format spesimen belum siap.`));
+        const signerCounts = (entries) => [...entries].map(([index, pageNumbers]) => `Signer ${index + 1} (${pageNumbers.length.toLocaleString('id-ID')} halaman)`).join(', ');
+        if (missingBySigner.size) summaries.push(`Posisi belum lengkap: ${signerCounts(missingBySigner)}.`);
+        if (invalidBySigner.size) summaries.push(`Perlu diperbaiki: ${signerCounts(invalidBySigner)}.`);
+        if (selectionProblems.length) summaries.push(`Pilih minimal satu halaman untuk signer ${selectionProblems.map((index) => index + 1).join(', ')}.`);
+        if (configurationMessages.length) summaries.push(`Profil atau format spesimen belum siap untuk signer ${configurationMessages.map(({index}) => index + 1).join(', ')}.`);
         if (summaries.length) return `${summaries.join(' ')} Buka checklist di bawah untuk melihat detail.`;
         if (missingCount) return `Posisi QR belum lengkap: ${missingCount.toLocaleString('id-ID')} penempatan perlu ditentukan.`;
         if (invalidCount) return `Ada ${invalidCount.toLocaleString('id-ID')} penempatan QR yang perlu diperbaiki.`;

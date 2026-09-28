@@ -91,7 +91,7 @@ test('missing profile explains disabled confirmation without emitting a broken i
     ui.fire('page-image', 'load');
     ui.select('framed');
     assert.equal(ui.field('confirm-positions').disabled, true);
-    for (const status of ui.statuses) assert.match(status.textContent, /Signer 1: profil atau format spesimen belum siap/);
+    for (const status of ui.statuses) assert.match(status.textContent, /Profil atau format spesimen belum siap untuk signer 1/);
     assert.equal(ui.field('blocks').children[0].children.length, 0);
     ui.select('qr_2cm');
     assert.equal(ui.field('confirm-positions').disabled, false);
@@ -104,7 +104,7 @@ test('overlapping frames and pages narrower than the frame still block confirmat
     assert.equal(overlap.field('confirm-positions').disabled, false);
     overlap.select('framed');
     assert.equal(overlap.field('confirm-positions').disabled, true);
-    assert.match(overlap.statuses[1].textContent, /Signer 2: 3 halaman perlu diperbaiki/);
+    assert.match(overlap.statuses[1].textContent, /Perlu diperbaiki: Signer 2 \(3 halaman\)/);
     const overlapChips = overlap.field('page-checklist').children
         .flatMap((card) => card.children[1]?.children ?? []);
     assert.match(overlapChips.map((chip) => chip.textContent).join(' '), /Halaman 1 · perlu diperbaiki/);
@@ -113,7 +113,7 @@ test('overlapping frames and pages narrower than the frame still block confirmat
     narrow.fire('page-image', 'load');
     narrow.select('framed');
     assert.equal(narrow.field('confirm-positions').disabled, true);
-    assert.match(narrow.statuses[1].textContent, /Signer 1: 3 halaman perlu diperbaiki/);
+    assert.match(narrow.statuses[1].textContent, /Perlu diperbaiki: Signer 1 \(3 halaman\)/);
     const narrowChips = narrow.field('page-checklist').children
         .flatMap((card) => card.children[1]?.children ?? []);
     assert.match(narrowChips.map((chip) => chip.textContent).join(' '), /Halaman 1 · perlu diperbaiki/);
@@ -219,7 +219,7 @@ test('position errors group missing pages by signer', () => {
     const ui = editor({ missingPages: [2, 3] });
     ui.fire('page-image', 'load');
 
-    assert.match(ui.statuses[1].textContent, /Signer 1: 2 halaman belum ditempatkan/);
+    assert.match(ui.statuses[1].textContent, /Posisi belum lengkap: Signer 1 \(2 halaman\)/);
     assert.doesNotMatch(ui.statuses[1].textContent, /posisi belum ditentukan pada halaman/);
     assert.match(ui.field('page-checklist').children[0].children[1].children[1].textContent, /Halaman 2 · belum ditempatkan/);
     assert.match(ui.field('page-checklist').children[0].children[1].children[2].textContent, /Halaman 3 · belum ditempatkan/);
