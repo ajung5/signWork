@@ -205,9 +205,9 @@ test('selected pages persist independent specimen positions and reject a missing
     ])->assertSessionHasNoErrors();
 
     $saved = $document->currentCycle()->signatures()->first()->fresh();
-    expect($saved->specimen_positions['1']['x'])->toBe(40.0);
-    expect($saved->specimen_positions['2']['x'])->toBe(300.0);
-    expect($saved->x)->toBe(40.0);
+    expect((float) $saved->specimen_positions['1']['x'])->toBe(40.0);
+    expect((float) $saved->specimen_positions['2']['x'])->toBe(300.0);
+    expect((float) $saved->x)->toBe(40.0);
 
     $missing = $positions;
     unset($missing[0]['specimen_positions'][2]);
