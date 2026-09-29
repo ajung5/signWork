@@ -110,6 +110,36 @@ test('admin can edit regular user without changing password', function () {
         ->toBe($oldPassword);
 });
 
+test('updating NIK does not clear an existing user profile', function () {
+    $admin = User::factory()
+        ->admin()
+        ->create();
+
+    $user = User::factory()->create([
+        'name' => 'Nama Lama',
+        'email' => 'profil@example.test',
+        'jabatan' => 'Analis Sistem Informasi',
+        'unit_kerja' => 'Diskominfo Kabupaten Subang',
+        'pangkat' => 'Penata',
+        'golongan' => 'III/c',
+    ]);
+
+    $profile = $user->only(['jabatan', 'unit_kerja', 'pangkat', 'golongan']);
+
+    $this->signIn($admin);
+
+    $this->put(route('admin.users.update', $user), [
+        'name' => $user->name,
+        'email' => $user->email,
+        'nik' => '3200000000000003',
+        'password' => '',
+        'password_confirmation' => '',
+    ])->assertRedirect(route('admin.users.index'))->assertSessionHasNoErrors();
+
+    expect($user->fresh()->only(['jabatan', 'unit_kerja', 'pangkat', 'golongan']))->toBe($profile);
+    expect($user->fresh()->nik)->toBe('3200000000000003');
+});
+
 test('admin can edit regular user and replace password', function () {
     $admin = User::factory()
         ->admin()

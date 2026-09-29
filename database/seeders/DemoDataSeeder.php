@@ -36,6 +36,25 @@ class DemoDataSeeder extends Seeder
     ];
 
     /**
+     * Profil sintetis untuk user demo. Profil dipasang saat create maupun
+     * upsert agar penambahan kolom user tidak menghilangkan data profil lama.
+     *
+     * @var array<int, array{jabatan: string, unit_kerja: string, pangkat: string, golongan: string}>
+     */
+    private const DEMO_PROFILES = [
+        ['jabatan' => 'Pranata Komputer Ahli Pertama', 'unit_kerja' => 'Dinas Komunikasi dan Informatika Kabupaten Subang', 'pangkat' => 'Penata Muda Tk. I', 'golongan' => 'III/b'],
+        ['jabatan' => 'Analis Keuangan Pusat dan Daerah Ahli Muda', 'unit_kerja' => 'Badan Pendapatan Daerah Kabupaten Subang', 'pangkat' => 'Penata', 'golongan' => 'III/c'],
+        ['jabatan' => 'Administrator Kesehatan Ahli Muda', 'unit_kerja' => 'Dinas Kesehatan Kabupaten Subang', 'pangkat' => 'Penata Tk. I', 'golongan' => 'III/d'],
+        ['jabatan' => 'Pranata Komputer Ahli Muda', 'unit_kerja' => 'Dinas Kependudukan dan Pencatatan Sipil Kabupaten Subang', 'pangkat' => 'Penata Tk. I', 'golongan' => 'III/d'],
+        ['jabatan' => 'Penata Perizinan Ahli Pertama', 'unit_kerja' => 'Dinas Penanaman Modal dan Pelayanan Terpadu Satu Pintu Kabupaten Subang', 'pangkat' => 'Penata Muda', 'golongan' => 'III/a'],
+        ['jabatan' => 'Perencana Ahli Madya', 'unit_kerja' => 'Badan Perencanaan Pembangunan, Penelitian dan Pengembangan Daerah Kabupaten Subang', 'pangkat' => 'Pembina', 'golongan' => 'IV/a'],
+        ['jabatan' => 'Analis Sumber Daya Manusia Aparatur Ahli Muda', 'unit_kerja' => 'Badan Kepegawaian dan Pengembangan Sumber Daya Manusia Kabupaten Subang', 'pangkat' => 'Penata Tk. I', 'golongan' => 'III/d'],
+        ['jabatan' => 'Auditor Ahli Madya', 'unit_kerja' => 'Inspektorat Daerah Kabupaten Subang', 'pangkat' => 'Pembina', 'golongan' => 'IV/a'],
+        ['jabatan' => 'Pengembang Teknologi Pembelajaran Ahli Pertama', 'unit_kerja' => 'Dinas Pendidikan dan Kebudayaan Kabupaten Subang', 'pangkat' => 'Penata Muda Tk. I', 'golongan' => 'III/b'],
+        ['jabatan' => 'Perencana Ahli Muda', 'unit_kerja' => 'Dinas Pekerjaan Umum dan Penataan Ruang Kabupaten Subang', 'pangkat' => 'Penata', 'golongan' => 'III/c'],
+    ];
+
+    /**
      * @var array<int, DocumentStatus>
      */
     private const STATUSES = [
@@ -154,6 +173,7 @@ class DemoDataSeeder extends Seeder
                     'name' => $data['name'],
                     'email' => $data['email'],
                     'nik' => sprintf('999900000000%04d', $index + 1),
+                    ...$this->demoProfile($index),
                     'password' => 'password',
                     'role' => UserRole::User,
                 ]);
@@ -162,12 +182,19 @@ class DemoDataSeeder extends Seeder
         $user->forceFill([
             'name' => $data['name'],
             'nik' => sprintf('999900000000%04d', $index + 1),
+            ...$this->demoProfile($index),
             'password' => 'password',
             'role' => UserRole::User,
             'email_verified_at' => now(),
         ])->save();
 
         return $user->refresh();
+    }
+
+    /** @return array{jabatan: string, unit_kerja: string, pangkat: string, golongan: string} */
+    private function demoProfile(int $index): array
+    {
+        return self::DEMO_PROFILES[$index % count(self::DEMO_PROFILES)];
     }
 
     /**

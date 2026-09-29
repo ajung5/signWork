@@ -38,6 +38,8 @@ test('reset preserves admin credentials and creates usable PDF workflows for ten
     Storage::disk('local')->assertExists('unrelated.txt');
     foreach (User::where('role', UserRole::User->value)->get() as $user) {
         expect($user->nik)->toMatch('/^9997\\d{12}$/');
+        expect($user->only(['jabatan', 'unit_kerja', 'pangkat', 'golongan']))
+            ->each->not->toBeEmpty();
         expect($user->documents()->count())->toBe(20);
         expect(Hash::check('SignWorkDemo!2026', $user->password))->toBeTrue();
         foreach (['draft', 'waiting_approval', 'rejected', 'waiting_signature', 'signed'] as $status) {
