@@ -64,6 +64,15 @@
         </div>
         <p data-placeholder-help class="hidden rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm text-violet-900">Placeholder terdeteksi. Posisi spesimen mengikuti lokasi placeholder pada setiap halaman. Pilih signer dan format spesimen saja.</p>
         <div data-page-picker class="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm" aria-live="polite"></div>
+        <section data-placeholder-preview class="hidden space-y-3 rounded-xl border border-violet-200 bg-violet-50 p-4" aria-labelledby="placeholder-preview-title">
+            <div>
+                <h3 id="placeholder-preview-title" class="text-sm font-semibold text-violet-950">Preview seluruh halaman</h3>
+                <p class="mt-1 text-xs text-violet-900">Preview read-only. Gulir untuk memeriksa semua halaman dan lokasi spesimen yang mengikuti placeholder.</p>
+            </div>
+            <div data-placeholder-preview-scroll class="max-h-[75vh] overflow-auto rounded-lg border border-violet-200 bg-slate-200 p-3">
+                <div data-placeholder-preview-pages class="mx-auto max-w-4xl space-y-6"></div>
+            </div>
+        </section>
         <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-slate-700">
             <p>Format 1: QR Code 2 × 2 cm dengan teks identitas penandatangan. Format 2: QR Code saja 2 × 2 cm. Format 3: QR Code saja 3 × 3 cm. Semua ukuran dihitung otomatis dan tidak menggunakan ukuran manual.</p>
             <p class="mt-2">Dokumen baru menggunakan cakupan semua halaman secara default. Jika memilih cakupan khusus, centang lebih dari satu halaman—misalnya halaman 1, 3, dan 5. Posisi tiap halaman disimpan terpisah dan dapat berbeda sesuai penempatan Anda.</p>

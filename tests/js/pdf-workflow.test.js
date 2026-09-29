@@ -61,7 +61,8 @@ function editor({ error = null, x = 500, y = 720, extraStep = false, pageWidth =
     if (extraStep) steps.push({ ...steps[0], id: 2, name_snapshot: 'Signer Dua', x: 350, y: 100 });
     const fields = Object.fromEntries(['active-signer', 'scope', 'page', 'page-surface', 'page-image', 'blocks',
         'position-inputs', 'position-form', 'zoom', 'preview-scroll', 'format', 'page-picker', 'confirm-positions',
-        'signer-progress', 'page-checklist', 'checklist-summary', 'dimension-hint', 'reset-position'].map(key => [`[data-${key}]`, new Element()]));
+        'signer-progress', 'page-checklist', 'checklist-summary', 'dimension-hint', 'reset-position',
+        'placeholder-preview', 'placeholder-preview-scroll', 'placeholder-preview-pages'].map(key => [`[data-${key}]`, new Element()]));
     fields['[data-zoom]'].value = '1';
     fields['[data-preview-scroll]'].clientWidth = 900;
     const statuses = [new Element(), new Element()];
@@ -114,6 +115,18 @@ test('placeholder mode keeps every detected page position and changes only its f
     const pageHeight = inputs.find((input) => input.name === 'positions[0][specimen_positions][3][height]');
     assert.equal(Number(pageWidth.value), 297.638);
     assert.equal(Number(pageHeight.value), 133);
+});
+
+test('placeholder mode renders every document page in a read-only scroll preview', () => {
+    const ui = editor({ placeholder: true, pageCount: 4 });
+
+    assert.equal(ui.field('placeholder-preview').classList.contains('hidden'), false);
+    assert.equal(ui.field('preview-scroll').classList.contains('hidden'), true);
+    assert.equal(ui.field('placeholder-preview-pages').children.length, 4);
+    assert.deepEqual(
+        ui.field('placeholder-preview-pages').children.map((card) => card.children[0].textContent),
+        ['Halaman 1', 'Halaman 2', 'Halaman 3', 'Halaman 4'],
+    );
 });
 
 test('missing profile explains disabled confirmation without emitting a broken image', () => {

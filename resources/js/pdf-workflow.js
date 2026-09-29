@@ -41,6 +41,8 @@ ready(() => {
     const form = root.querySelector('[data-position-form]');
     const zoom = root.querySelector('[data-zoom]');
     const scroller = root.querySelector('[data-preview-scroll]');
+    const placeholderPreview = root.querySelector('[data-placeholder-preview]');
+    const placeholderPreviewPages = root.querySelector('[data-placeholder-preview-pages]');
     const format = root.querySelector('[data-format]');
     const placeholderHelp = root.querySelector('[data-placeholder-help]');
     const setStatus = (message, invalid = false) => statuses.forEach(status => {
@@ -144,6 +146,8 @@ ready(() => {
         materializeInitialPagePosition(step);
     });
     let loaded = false;
+    let placeholderPreviewError = false;
+    let placeholderPreviewGeneration = 0;
     let drag = null;
     steps.forEach((step, i) => signerSelect.add(new Option(`${i + 1}. ${step.name_snapshot}`, i)));
     const active = () => steps[Number(signerSelect.value)];
@@ -310,6 +314,91 @@ ready(() => {
         });
         if (checklistSummary) checklistSummary.textContent = total ? `${complete}/${total} halaman lengkap` : 'Belum ada posisi yang diperiksa';
     };
+    const placeholderPositionStyle = (position, targetPage) => ({
+        left: `${position.x / targetPage.width * 100}%`,
+        top: `${position.y / (targetPage.height + footerHeight) * 100}%`,
+        width: `${position.width / targetPage.width * 100}%`,
+        height: `${position.height / (targetPage.height + footerHeight) * 100}%`,
+    });
+    const renderPlaceholderPreview = () => {
+        const placeholderMode = steps.some(isPlaceholderStep);
+        if (!placeholderMode || !placeholderPreviewPages) return;
+
+        placeholderPreview?.classList.toggle('hidden', false);
+        scroller?.classList.toggle('hidden', true);
+        placeholderPreviewPages.replaceChildren();
+        loaded = false;
+        placeholderPreviewError = false;
+        const generation = ++placeholderPreviewGeneration;
+
+        let remaining = pages.length;
+        const markLoaded = () => {
+            if (generation !== placeholderPreviewGeneration) return;
+            remaining -= 1;
+            if (remaining <= 0) {
+                loaded = !placeholderPreviewError;
+                draw();
+            }
+        };
+
+        pages.forEach((targetPage) => {
+            const card = document.createElement('article');
+            card.className = 'space-y-2';
+            const heading = document.createElement('h4');
+            heading.className = 'text-xs font-semibold text-slate-700';
+            heading.textContent = `Halaman ${targetPage.page}`;
+            const pageSurface = document.createElement('div');
+            pageSurface.className = 'relative mx-auto max-w-4xl bg-white shadow-sm';
+
+            const pageImage = document.createElement('img');
+            pageImage.alt = `Preview halaman ${targetPage.page}`;
+            pageImage.draggable = false;
+            pageImage.className = 'block h-auto w-full select-none';
+            pageImage.addEventListener('load', markLoaded);
+            pageImage.addEventListener('error', () => {
+                placeholderPreviewError = true;
+                markLoaded();
+            });
+            pageImage.src = `${root.dataset.previewUrl}?page=${encodeURIComponent(targetPage.page)}`;
+            pageSurface.append(pageImage);
+
+            const overlays = document.createElement('div');
+            overlays.className = 'absolute inset-0';
+            steps.forEach((step, index) => {
+                if (!isPlaceholderStep(step) || !selectedPageNumbers(step).includes(Number(targetPage.page))) return;
+                const position = pagePosition(step, targetPage.page);
+                if (!hasCoordinates(position)) return;
+
+                const block = document.createElement('div');
+                block.className = 'absolute overflow-hidden bg-white';
+                Object.assign(block.style, placeholderPositionStyle(position, targetPage));
+                block.style.outline = index === Number(signerSelect.value) ? '2px solid #FF95A5' : '2px solid #8B5CF6';
+                block.setAttribute('aria-label', `Posisi otomatis ${step.name_snapshot} pada halaman ${targetPage.page}`);
+                const choice = step.layouts[step.specimen_format];
+                if (choice?.preview && !choice.error) {
+                    const specimen = document.createElement('img');
+                    specimen.src = choice.preview;
+                    specimen.alt = `Spesimen ${index + 1}: ${step.name_snapshot}`;
+                    specimen.draggable = false;
+                    specimen.className = 'h-full w-full pointer-events-none';
+                    block.append(specimen);
+                } else {
+                    block.textContent = `Signer ${index + 1}: spesimen belum tersedia.`;
+                    block.className += ' border border-red-300 bg-red-50 p-1 text-xs text-red-700';
+                }
+                overlays.append(block);
+            });
+            pageSurface.append(overlays);
+            card.append(heading, pageSurface);
+            placeholderPreviewPages.append(card);
+        });
+
+        if (!pages.length) {
+            loaded = false;
+            placeholderPreviewError = true;
+            setStatus('Tidak ada halaman PDF untuk dipreview.', true);
+        }
+    };
     const draw = () => {
         blocks.replaceChildren();
         inputs.replaceChildren();
@@ -371,8 +460,13 @@ ready(() => {
             blocks.append(block);
         });
         const validation = collectIssues();
-        setStatus(validation.messages.length ? issueSummary(validation) : loaded ? 'Semua posisi QR lengkap. Periksa dokumen, lalu konfirmasi.' : 'Memuat preview halaman…', validation.messages.length > 0);
-        root.querySelector('[data-confirm-positions]').disabled = validation.messages.length > 0 || !loaded;
+        const previewReady = loaded && !placeholderPreviewError;
+        setStatus(validation.messages.length
+            ? issueSummary(validation)
+            : previewReady
+                ? 'Semua posisi QR lengkap. Periksa dokumen, lalu konfirmasi.'
+                : 'Memuat preview seluruh halaman…', validation.messages.length > 0 || placeholderPreviewError);
+        root.querySelector('[data-confirm-positions]').disabled = validation.messages.length > 0 || !previewReady;
         const progress = root.querySelector('[data-signer-progress]');
         progress.replaceChildren();
         steps.forEach((step, i) => {
@@ -497,9 +591,17 @@ ready(() => {
             ? `Ukuran otomatis: ${(choice.width / pointsPerCm).toFixed(2)} × ${(choice.height / pointsPerCm).toFixed(2)} cm. ${placeholderMode ? 'Posisi mengikuti semua placeholder.' : 'Posisi disimpan per halaman saat memilih beberapa halaman.'}`
             : 'Format spesimen tidak tersedia. Muat ulang halaman.');
         surface.style.touchAction = placeholderMode ? 'auto' : 'none';
+        placeholderPreview?.classList.toggle('hidden', !placeholderMode);
+        scroller?.classList.toggle('hidden', placeholderMode);
     };
     const load = () => {
         loaded = false;
+        placeholderPreviewError = false;
+        if (isPlaceholderStep(active())) {
+            renderPlaceholderPreview();
+            draw();
+            return;
+        }
         preview.style.opacity = '0.3';
         draw();
         preview.src = `${root.dataset.previewUrl}?page=${pageSelect.value}`;
@@ -523,6 +625,7 @@ ready(() => {
     preview.addEventListener('error', () => { loaded = false; draw(); setStatus('Preview gagal dimuat. Muat ulang atau periksa PDF worker.', true); });
     signerSelect.addEventListener('change', () => {
         controls();
+        if (isPlaceholderStep(active())) renderPlaceholderPreview();
         if (active().page && Number(pageSelect.value) !== Number(active().page)) { pageSelect.value = active().page; load(); } else draw();
     });
     pageSelect.addEventListener('change', () => {
@@ -590,7 +693,9 @@ ready(() => {
                 setPagePosition(step, pageNumber, position);
             });
         }
-        controls(); draw();
+        controls();
+        if (isPlaceholderStep(step)) renderPlaceholderPreview();
+        draw();
     });
     root.querySelector('[data-reset-position]').addEventListener('click', () => {
         const step = active();

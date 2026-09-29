@@ -139,6 +139,56 @@ class PdfWorkerTest(unittest.TestCase):
                 self.assertNotIn('${tte:', page.get_text())
                 self.assertEqual(len(page.get_links()), 1)
 
+    def test_multiple_signers_are_detected_on_independent_pages(self):
+        source = Path(self.directory.name) / 'multi-signer-pages.pdf'
+        doc = fitz.open()
+        for page_number in range(1, 5):
+            page = doc.new_page(width=595, height=842)
+            if page_number in [1, 3]:
+                page.insert_text((72, 120), '${tte:signer:1}', fontsize=12)
+            if page_number in [2, 4]:
+                page.insert_text((300, 120), '${tte:signer:2}', fontsize=12)
+        doc.save(source)
+        doc.close()
+
+        data = worker.run({'action': 'scan', 'input': str(source)})
+        self.assertEqual(
+            [match['page'] for match in data['placeholders']['${tte:signer:1}']],
+            [1, 3],
+        )
+        self.assertEqual(
+            [match['page'] for match in data['placeholders']['${tte:signer:2}']],
+            [2, 4],
+        )
+
+        steps = []
+        for sequence, token in [(1, '${tte:signer:1}'), (2, '${tte:signer:2}')]:
+            matches = data['placeholders'][token]
+            positions = {
+                str(match['page']): {
+                    'x': match['x'], 'y': match['y'],
+                    'width': 56.693, 'height': 56.693,
+                }
+                for match in matches
+            }
+            steps.append({
+                **matches[0], 'sequence': sequence, 'placeholder': token,
+                'name_snapshot': f'Signer {sequence}', 'specimen_format': 'qr_2cm',
+                'specimen_scope': 'selected_pages',
+                'specimen_pages': [match['page'] for match in matches],
+                'specimen_positions': positions,
+            })
+
+        worker.run({
+            'action': 'prepare', 'input': str(source), 'output': str(self.output),
+            'steps': steps,
+            'verification_url': 'https://signwork.example/verify/multi-signer',
+        })
+        with fitz.open(self.output) as prepared:
+            self.assertEqual(len(prepared), 4)
+            for page in prepared:
+                self.assertNotIn('${tte:', page.get_text())
+
     def test_cropped_page_stays_consistent(self):
         path = Path(self.directory.name) / 'cropped.pdf'
         doc = fitz.open(self.source)
