@@ -127,6 +127,10 @@ test('placeholder mode renders every document page in a read-only scroll preview
         ui.field('placeholder-preview-pages').children.map((card) => card.children[0].textContent),
         ['Halaman 1', 'Halaman 2', 'Halaman 3', 'Halaman 4'],
     );
+    for (const [index, card] of ui.field('placeholder-preview-pages').children.entries()) {
+        const pageSurface = card.children[1];
+        assert.equal(pageSurface.children[1].children.length, index < 3 ? 1 : 0);
+    }
 });
 
 test('missing profile explains disabled confirmation without emitting a broken image', () => {

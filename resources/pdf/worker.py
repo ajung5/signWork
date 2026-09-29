@@ -162,6 +162,47 @@ def clear_specimen(page, rect):
     page.apply_redactions(images=2, graphics=2, text=0)
 
 
+def redact_placeholder_matches(doc, matches):
+    for match in matches:
+        text_rect = match.get('text_rect')
+        if isinstance(text_rect, (list, tuple)) and len(text_rect) >= 4:
+            rect = fitz.Rect(text_rect[:4])
+        else:
+            rect = fitz.Rect(
+                match['x'], match['y'],
+                match['x'] + float(match.get('width', 0)),
+                match['y'] + float(match.get('height', 0)),
+            )
+        doc[match['page'] - 1].add_redact_annot(rect, fill=(1, 1, 1))
+    for page in doc:
+        page.apply_redactions(images=0, graphics=0)
+
+
+def redact_all_placeholders(doc):
+    """Redact detected placeholder text for a source-page preview."""
+    metadata = scan(doc)
+    redact_placeholder_matches(doc, [match for matches in metadata['placeholders'].values() for match in matches])
+
+
+def replace_placeholders(doc, steps):
+    """Remove every configured placeholder before drawing its specimen replacement."""
+    metadata = scan(doc)
+    matches_to_redact = []
+    for step in steps:
+        token = step.get('placeholder')
+        if not token:
+            continue
+        matches = metadata['placeholders'].get(token, [])
+        if token == '${tte:signer:1}' and not matches and len(steps) == 1:
+            matches = metadata['placeholders'].get('${tandatangan_naskah}', [])
+        if step.get('placement_source') == 'placeholder' and not matches:
+            raise InvalidPdf(f'Placeholder {token} tidak ditemukan pada PDF sumber.')
+        if len({match['page'] for match in matches}) != len(matches):
+            raise InvalidPdf('Placeholder duplikat. Gunakan maksimal satu placeholder per signer pada setiap halaman.')
+        matches_to_redact.extend(matches)
+    redact_placeholder_matches(doc, matches_to_redact)
+
+
 def validate_positions(doc, steps):
     if not 1 <= len(steps) <= 10:
         raise InvalidPdf('Jumlah signer harus 1–10.')
@@ -202,19 +243,8 @@ def validate_positions(doc, steps):
 
 def prepare(doc, payload):
     steps = payload['steps']
-    rectangles = validate_positions(doc, steps)
-    metadata = scan(doc)
-    for step in steps:
-        token = step['placeholder']
-        matches = metadata['placeholders'].get(token, [])
-        if token == '${tte:signer:1}' and not matches and len(steps) == 1:
-            matches = metadata['placeholders'].get('${tandatangan_naskah}', [])
-        if len({match['page'] for match in matches}) != len(matches):
-            raise InvalidPdf('Placeholder duplikat. Gunakan maksimal satu placeholder per signer pada setiap halaman.')
-        for match in matches:
-            doc[match['page'] - 1].add_redact_annot(fitz.Rect(match['text_rect']), fill=(1, 1, 1))
-    for page in doc:
-        page.apply_redactions(images=0, graphics=0)
+    validate_positions(doc, steps)
+    replace_placeholders(doc, steps)
     if payload.get('specimen_version') == 1:
         specimens.footer(doc)
     draw_specimens(doc, steps, payload['verification_url'], color='red')
@@ -271,6 +301,8 @@ def run(payload):
             validate_positions(doc, payload['steps'])
             return {'ok': True}
         if action == 'render':
+            if payload.get('redact_placeholders'):
+                redact_all_placeholders(doc)
             if payload.get('specimen_version') == 1:
                 specimens.footer(doc)
             page = int(payload['page'])

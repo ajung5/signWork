@@ -117,6 +117,7 @@ ready(() => {
     };
     steps.forEach((step) => {
         step.specimen_positions = step.specimen_positions && typeof step.specimen_positions === 'object' ? step.specimen_positions : {};
+        step.placeholder_rects = step.placeholder_rects && typeof step.placeholder_rects === 'object' ? step.placeholder_rects : {};
         ['x', 'y', 'width', 'height'].forEach((key) => { if (step[key] !== null && step[key] !== undefined) step[key] = Number(step[key]); });
         step.specimen_format = !step.specimen_format || step.specimen_format === 'qr_only' ? 'qr_2cm' : step.specimen_format;
         if (isPlaceholderStep(step)) {
@@ -320,6 +321,15 @@ ready(() => {
         width: `${position.width / targetPage.width * 100}%`,
         height: `${position.height / (targetPage.height + footerHeight) * 100}%`,
     });
+    const placeholderRect = (step, pageNumber) => {
+        const saved = step.placeholder_rects?.[String(pageNumber)] ?? step.placeholder_rects?.[pageNumber];
+        return hasCoordinates(saved) ? {
+            x: Number(saved.x),
+            y: Number(saved.y),
+            width: Number(saved.width),
+            height: Number(saved.height),
+        } : pagePosition(step, pageNumber);
+    };
     const renderPlaceholderPreview = () => {
         const placeholderMode = steps.some(isPlaceholderStep);
         if (!placeholderMode || !placeholderPreviewPages) return;
@@ -364,6 +374,20 @@ ready(() => {
 
             const overlays = document.createElement('div');
             overlays.className = 'absolute inset-0';
+            const redactions = document.createElement('div');
+            redactions.className = 'absolute inset-0 pointer-events-none';
+            steps.forEach((step) => {
+                if (!isPlaceholderStep(step) || !selectedPageNumbers(step).includes(Number(targetPage.page))) return;
+                const position = placeholderRect(step, targetPage.page);
+                if (!hasCoordinates(position)) return;
+
+                const redaction = document.createElement('div');
+                redaction.className = 'absolute bg-white';
+                redaction.dataset.placeholderRedaction = 'true';
+                Object.assign(redaction.style, placeholderPositionStyle(position, targetPage));
+                redactions.append(redaction);
+            });
+            pageSurface.append(redactions);
             steps.forEach((step, index) => {
                 if (!isPlaceholderStep(step) || !selectedPageNumbers(step).includes(Number(targetPage.page))) return;
                 const position = pagePosition(step, targetPage.page);

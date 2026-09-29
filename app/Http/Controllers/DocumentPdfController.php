@@ -184,6 +184,7 @@ class DocumentPdfController extends Controller
                 'page' => (int) $data['page'],
                 'output' => $pdf->path($path),
                 'specimen_version' => $document->isDraft() ? 1 : (int) $cycle->specimen_version,
+                'redact_placeholders' => $document->isDraft(),
             ]);
         } catch (\Throwable $error) {
             Storage::disk('local')->delete($path);

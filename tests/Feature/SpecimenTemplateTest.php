@@ -141,6 +141,10 @@ test('placeholder documents default to framed format and preserve every placehol
         ->and($steps[1]->placement_source)->toBe('placeholder')
         ->and($steps[1]->specimen_pages)->toBe([1])
         ->and($steps[1]->specimen_positions['1'])->toHaveKeys(['x', 'y', 'width', 'height']);
+
+    $options = app(SpecimenTemplate::class)->options($doc->fresh()->currentCycle(), false);
+    expect($options[0]['placeholder_rects']['1'])->toHaveKeys(['x', 'y', 'width', 'height'])
+        ->and($options[1]['placeholder_rects']['1'])->toHaveKeys(['x', 'y', 'width', 'height']);
 });
 
 test('placeholder mode rejects a missing signer token instead of falling back to manual placement', function () {

@@ -127,6 +127,7 @@ class PdfWorkerTest(unittest.TestCase):
         steps = [{
             **matches[0], 'sequence': 1, 'placeholder': '${tte:signer:1}',
             'name_snapshot': 'Signer 1', 'specimen_format': 'qr_2cm',
+            'placement_source': 'placeholder',
             'specimen_scope': 'selected_pages',
             'specimen_pages': [1, 2], 'specimen_positions': positions,
         }]
@@ -138,6 +139,18 @@ class PdfWorkerTest(unittest.TestCase):
             for page in prepared:
                 self.assertNotIn('${tte:', page.get_text())
                 self.assertEqual(len(page.get_links()), 1)
+
+    def test_preview_redacts_placeholder_text_before_rendering(self):
+        source = Path(self.directory.name) / 'preview-placeholder.pdf'
+        doc = fitz.open()
+        page = doc.new_page(width=595, height=842)
+        page.insert_text((72, 120), '${tte:signer:1}', fontsize=12)
+        doc.save(source)
+        doc.close()
+
+        with worker.open_pdf(source) as preview:
+            worker.redact_all_placeholders(preview)
+            self.assertNotIn('${tte:', preview[0].get_text())
 
     def test_multiple_signers_are_detected_on_independent_pages(self):
         source = Path(self.directory.name) / 'multi-signer-pages.pdf'
@@ -174,6 +187,7 @@ class PdfWorkerTest(unittest.TestCase):
             steps.append({
                 **matches[0], 'sequence': sequence, 'placeholder': token,
                 'name_snapshot': f'Signer {sequence}', 'specimen_format': 'qr_2cm',
+                'placement_source': 'placeholder',
                 'specimen_scope': 'selected_pages',
                 'specimen_pages': [match['page'] for match in matches],
                 'specimen_positions': positions,

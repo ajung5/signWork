@@ -62,7 +62,7 @@
             <label class="text-sm">Format spesimen <select data-format class="mt-1 w-full rounded border border-slate-300 p-2"><option value="framed">1. QR Code dengan Teks</option><option value="qr_2cm">2. QR Code (2 × 2 cm)</option><option value="qr_3cm">3. QR Code (3 × 3 cm)</option></select></label>
             <button type="button" data-manual-control data-reset-position class="self-end rounded-lg border border-blue-200 bg-blue-50 p-2 text-sm text-blue-800">Letakkan di tengah halaman</button>
         </div>
-        <p data-placeholder-help class="hidden rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm text-violet-900">Placeholder terdeteksi. Posisi spesimen mengikuti lokasi placeholder pada setiap halaman. Pilih signer dan format spesimen saja.</p>
+        <p data-placeholder-help class="hidden rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm text-violet-900">Placeholder terdeteksi. Placeholder akan dihapus lalu digantikan preset spesimen pada lokasi yang sama. Posisi otomatis; pilih signer dan format spesimen saja.</p>
         <div data-page-picker class="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm" aria-live="polite"></div>
         <section data-placeholder-preview class="hidden space-y-3 rounded-xl border border-violet-200 bg-violet-50 p-4" aria-labelledby="placeholder-preview-title">
             <div>
@@ -77,7 +77,7 @@
             <p>Format 1: QR Code 2 × 2 cm dengan teks identitas penandatangan. Format 2: QR Code saja 2 × 2 cm. Format 3: QR Code saja 3 × 3 cm. Semua ukuran dihitung otomatis dan tidak menggunakan ukuran manual.</p>
             <p class="mt-2">Dokumen baru menggunakan cakupan semua halaman secara default. Jika memilih cakupan khusus, centang lebih dari satu halaman—misalnya halaman 1, 3, dan 5. Posisi tiap halaman disimpan terpisah dan dapat berbeda sesuai penempatan Anda.</p>
             <p class="mt-2">Footer simulasi ditambahkan pada pita baru setinggi 1,2 cm di bawah setiap halaman. Ukuran halaman bertambah tanpa mengecilkan isi surat. Blok spesimen harus berada di area surat, bukan di footer.</p>
-            <p class="mt-2">Jika dokumen memuat placeholder seperti <code>${tte:signer:1}</code>, semua lokasi placeholder dideteksi otomatis. Pada mode ini preview bersifat read-only; Anda hanya memilih signer dan format spesimen. Identitas disimpan saat posisi dikonfirmasi; perubahan profil berikutnya tidak mengubah dokumen ini.</p>
+            <p class="mt-2">Jika dokumen memuat placeholder seperti <code>${tte:signer:1}</code>, semua lokasi placeholder dideteksi otomatis. Placeholder dihapus dari PDF turunan dan digantikan preset spesimen, bukan ditimpa di atas teks lama. Pada mode ini preview bersifat read-only; Anda hanya memilih signer dan format spesimen. Identitas disimpan saat posisi dikonfirmasi; perubahan profil berikutnya tidak mengubah dokumen ini.</p>
         </div>
         <p data-dimension-hint class="text-xs text-slate-500"></p>
         <div data-signer-progress data-manual-control class="flex flex-wrap gap-2 text-xs"></div>
