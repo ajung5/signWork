@@ -36,6 +36,12 @@ class UpdateAdminUserRequest extends FormRequest
                 Rule::unique('users', 'email')
                     ->ignore($user->id),
             ],
+            'nik' => [
+                'nullable',
+                'digits:16',
+                Rule::unique('users', 'nik')
+                    ->ignore($user->id),
+            ],
             'password' => [
                 'nullable',
                 'string',
@@ -56,6 +62,8 @@ class UpdateAdminUserRequest extends FormRequest
             'email.required' => 'Email user wajib diisi.',
             'email.email' => 'Format email tidak valid.',
             'email.unique' => 'Email sudah digunakan.',
+            'nik.digits' => 'NIK harus terdiri dari 16 digit.',
+            'nik.unique' => 'NIK sudah digunakan oleh user lain.',
             'password.min' => 'Password minimal 8 karakter.',
             'password.confirmed' => 'Konfirmasi password tidak sesuai.',
             'role.in' => 'Role akun tidak dapat diberikan oleh pengguna saat ini.',

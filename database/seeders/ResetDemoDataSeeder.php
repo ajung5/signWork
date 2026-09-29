@@ -73,7 +73,14 @@ class ResetDemoDataSeeder extends Seeder
                 $names = ['Andi Pratama', 'Siti Rahmawati', 'Dedi Kurniawan', 'Rina Marlina', 'Fajar Nugraha', 'Nabila Putri', 'Rizky Hidayat', 'Budi Santoso', 'Maya Lestari', 'Arief Maulana'];
                 foreach ($names as $index => $name) {
                     $user = new User;
-                    $user->forceFill(['name' => $name, 'email' => sprintf('user%02d@demo.signwork.test', $index + 1), 'password' => $password, 'role' => UserRole::User, 'email_verified_at' => now()])->save();
+                    $user->forceFill([
+                        'name' => $name,
+                        'email' => sprintf('user%02d@demo.signwork.test', $index + 1),
+                        'nik' => sprintf('999700000000%04d', $index + 1),
+                        'password' => $password,
+                        'role' => UserRole::User,
+                        'email_verified_at' => now(),
+                    ])->save();
                     $users->push($user);
                 }
                 foreach ($users as $index => $owner) {

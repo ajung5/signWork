@@ -28,6 +28,7 @@
                 @foreach ([
                     'Nama' => $user->name,
                     'Email' => $user->email,
+                    'NIK' => $user->nik ? substr($user->nik, 0, 4).'********'.substr($user->nik, -4) : null,
                     'Role' => $user->role->label(),
                     'Jabatan' => $user->jabatan,
                     'Unit Kerja' => $user->unit_kerja,

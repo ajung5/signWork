@@ -28,7 +28,7 @@ class ProfileController extends Controller
 
     public function update(UpdateProfileRequest $request): RedirectResponse
     {
-        $request->user()->update($request->safe()->only(['name', 'jabatan', 'unit_kerja', 'pangkat', 'golongan']));
+        $request->user()->update($request->safe()->only(['name', 'nik', 'jabatan', 'unit_kerja', 'pangkat', 'golongan']));
 
         return to_route('profile.edit')->with('success', 'Profil berhasil diperbarui. Muat ulang halaman posisi QR untuk memakai data terbaru.');
     }

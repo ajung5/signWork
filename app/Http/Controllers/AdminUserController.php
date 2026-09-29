@@ -46,7 +46,7 @@ class AdminUserController extends Controller
             'role' => $role,
         ]);
 
-        $user->fill($request->safe()->only(['jabatan', 'unit_kerja', 'pangkat', 'golongan']));
+        $user->fill($request->safe()->only(['nik', 'jabatan', 'unit_kerja', 'pangkat', 'golongan']));
         $user->save();
 
         return redirect()->route('admin.users.index')->with('success', 'User berhasil ditambahkan.');
@@ -88,7 +88,7 @@ class AdminUserController extends Controller
             $data['password'] = $request->string('password')->toString();
         }
 
-        $user->fill($request->safe()->only(['jabatan', 'unit_kerja', 'pangkat', 'golongan']));
+        $user->fill($request->safe()->only(['nik', 'jabatan', 'unit_kerja', 'pangkat', 'golongan']));
         $user->forceFill($data)->save();
 
         return redirect()->route('admin.users.index')->with('success', 'User berhasil diperbarui.');

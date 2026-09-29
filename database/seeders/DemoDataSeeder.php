@@ -71,8 +71,9 @@ class DemoDataSeeder extends Seeder
 
         $demoUsers = collect(self::DEMO_USERS)
             ->map(
-                fn (array $data): User => $this->upsertUser(
-                    $data
+                fn (array $data, int $index): User => $this->upsertUser(
+                    $data,
+                    $index,
                 )
             )
             ->values();
@@ -137,7 +138,8 @@ class DemoDataSeeder extends Seeder
      * @param  array{name: string, email: string}  $data
      */
     private function upsertUser(
-        array $data
+        array $data,
+        int $index,
     ): User {
         $user = User::query()
             ->where(
@@ -151,6 +153,7 @@ class DemoDataSeeder extends Seeder
                 ->create([
                     'name' => $data['name'],
                     'email' => $data['email'],
+                    'nik' => sprintf('999900000000%04d', $index + 1),
                     'password' => 'password',
                     'role' => UserRole::User,
                 ]);
@@ -158,6 +161,7 @@ class DemoDataSeeder extends Seeder
 
         $user->forceFill([
             'name' => $data['name'],
+            'nik' => sprintf('999900000000%04d', $index + 1),
             'password' => 'password',
             'role' => UserRole::User,
             'email_verified_at' => now(),

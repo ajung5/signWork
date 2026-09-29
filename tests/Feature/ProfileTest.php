@@ -84,7 +84,7 @@ test('profile updates only the authenticated identity fields and displays modal 
     $other = User::factory()->create();
     $before = $other->fresh()->getAttributes();
     $password = $user->password;
-    $data = ['name' => 'Akbar, S.Kom', 'jabatan' => 'Analis', 'unit_kerja' => 'Diskominfo', 'pangkat' => 'Penata', 'golongan' => 'III/c'];
+    $data = ['name' => 'Akbar, S.Kom', 'nik' => '3200000000000001', 'jabatan' => 'Analis', 'unit_kerja' => 'Diskominfo', 'pangkat' => 'Penata', 'golongan' => 'III/c'];
     $this->actingAs($user)->put(route('profile.update'), [...$data, 'user_id' => $other->id, 'id' => $other->id,
         'role' => 'admin', 'email' => 'changed@example.test', 'password' => 'new-secret-123'])->assertRedirect(route('profile.edit'))->assertSessionHasNoErrors()->assertSessionHas('success');
     $this->assertDatabaseHas('users', ['id' => $user->id, ...$data, 'email' => $user->email, 'password' => $password]);
@@ -100,11 +100,23 @@ test('invalid profile data is rejected without saving', function (string $key, m
     expect($user->fresh()->getAttributes())->toBe($before);
 })->with([
     ['name', '', 'nama lengkap wajib diisi.'],
+    ['nik', '123', 'NIK harus terdiri dari 16 digit.'],
     ['jabatan', ['invalid'], 'jabatan harus berupa teks.'],
     ['unit_kerja', str_repeat('a', 256), 'unit kerja maksimal 255 karakter.'],
     ['pangkat', str_repeat('a', 101), 'pangkat maksimal 100 karakter.'],
     ['golongan', str_repeat('a', 31), 'golongan maksimal 30 karakter.'],
 ]);
+
+test('profile rejects an NIK that belongs to another user', function () {
+    $user = User::factory()->create();
+    $other = User::factory()->create();
+
+    $this->actingAs($user)
+        ->put(route('profile.update'), ['name' => $user->name, 'nik' => $other->nik])
+        ->assertSessionHasErrors(['nik' => 'NIK sudah digunakan oleh user lain.']);
+
+    expect($user->fresh()->nik)->not->toBe($other->nik);
+});
 
 test('profile view escapes identity values', function () {
     $payload = '<script>alert(1)</script>';

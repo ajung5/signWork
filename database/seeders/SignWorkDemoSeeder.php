@@ -59,7 +59,7 @@ class SignWorkDemoSeeder extends Seeder
             $admin = $this->upsertAccount('Admin SignWork', 'admin@signwork.test', UserRole::Admin, [
                 'unit_kerja' => 'Dinas Komunikasi dan Informatika Kabupaten Subang',
             ]);
-            $users = collect(self::USERS)->map(fn (array $data): User => $this->upsertDemoUser($data))->values();
+            $users = collect(self::USERS)->map(fn (array $data, int $index): User => $this->upsertDemoUser($data, $index))->values();
 
             $this->seedWorkflowMaster($users);
             $this->seedDocuments($users);
@@ -86,9 +86,10 @@ class SignWorkDemoSeeder extends Seeder
     }
 
     /** @param array{name: string, email: string, jabatan: string, unit_kerja: string, pangkat: string, golongan: string} $data */
-    private function upsertDemoUser(array $data): User
+    private function upsertDemoUser(array $data, int $index): User
     {
         return $this->upsertAccount($data['name'], $data['email'], UserRole::User, [
+            'nik' => sprintf('999800000000%04d', $index + 1),
             'jabatan' => $data['jabatan'],
             'unit_kerja' => $data['unit_kerja'],
             'pangkat' => $data['pangkat'],

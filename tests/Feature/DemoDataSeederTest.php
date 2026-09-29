@@ -34,6 +34,9 @@ test('demo seeder creates fifteen normal users', function () {
             )
             ->count()
     )->toBe(15);
+
+    expect($users->pluck('nik')->filter()->unique())->toHaveCount(15);
+    expect($users->pluck('nik')->every(fn (?string $nik): bool => is_string($nik) && preg_match('/^9999\\d{12}$/', $nik) === 1))->toBeTrue();
 });
 
 test('demo users receive multiple workflow master entries', function () {
