@@ -53,3 +53,5 @@ ENV/
 AGENTS.md
 composer.json
 composer.lock
+
+*.sql
