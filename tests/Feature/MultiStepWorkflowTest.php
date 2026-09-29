@@ -6,6 +6,7 @@ use App\Models\Document;
 use App\Models\User;
 use App\Models\WorkflowMasterEntry;
 use App\Services\DocumentWorkflow;
+use App\Services\SpecimenTemplate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -36,10 +37,22 @@ function pdfWorkflowFixture(?UploadedFile $upload = null): array
         }
     }
     $document = Document::factory()->for($owner, 'owner')->create(['status' => DocumentStatus::Draft, 'approver_id' => $approvers[0]->id, 'signer_id' => $signers[0]->id]);
-    $file = $upload ?? new UploadedFile(base_path('tests/Fixtures/two-signers.pdf'), 'two-signers.pdf', 'application/pdf', null, true);
+    $file = $upload ?? new UploadedFile(base_path('tests/Fixtures/scanned.pdf'), 'scanned.pdf', 'application/pdf', null, true);
     app(DocumentWorkflow::class)->configure($document, $owner, array_column($approvers, 'id'), array_column($signers, 'id'), $file);
     $document->refresh();
     $cycle = $document->currentCycle();
+    $cycle->signatures()->orderBy('sequence')->get()->each(function ($step, int $index): void {
+        $step->update([
+            'page' => 1,
+            'x' => 30 + ($index * 250),
+            'y' => 100,
+            'width' => SpecimenTemplate::QR_SIZE,
+            'height' => SpecimenTemplate::QR_SIZE,
+            'specimen_format' => 'qr_2cm',
+            'specimen_scope' => 'all_pages',
+            'placement_source' => 'manual',
+        ]);
+    });
     app(DocumentWorkflow::class)->place($document, $owner, $cycle->public_id, $cycle->original_sha256, $cycle->signatures->map->only(['id', 'page', 'x', 'y', 'width', 'height'])->all());
 
     return [$document, $owner, $approvers, $signers];
@@ -62,7 +75,7 @@ function approvePdfWorkflow(Document $document, array $approvers): void
 test('full workflow runs two approvals and two mock signatures and verifies the exact final bytes', function () {
     [$document, $owner, $approvers, $signers] = pdfWorkflowFixture();
     $token = $document->currentCycle()->public_id;
-    $this->actingAs($owner)->get(route('documents.pdf.edit', $document))->assertOk()->assertSee('Periksa posisi');
+    $this->actingAs($owner)->get(route('documents.pdf.edit', $document))->assertOk()->assertSee('Atur spesimen pada preview');
     $this->post(route('documents.submit', $document), ['cycle_token' => $token])
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('documents.index'));
