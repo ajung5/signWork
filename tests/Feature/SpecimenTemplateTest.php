@@ -104,6 +104,41 @@ test('new documents default to all-page specimen placement', function () {
     expect($cycle->signatures()->first()->specimen_scope)->toBe('all_pages');
 });
 
+test('placeholder documents default to framed format and preserve every placeholder page', function () {
+    Storage::fake('local');
+    $owner = User::factory()->create();
+    $approver = User::factory()->create();
+    $signers = User::factory()->count(2)->create([
+        'jabatan' => 'Pranata Komputer',
+        'unit_kerja' => 'Diskominfo',
+        'pangkat' => 'Penata',
+        'golongan' => 'III/c',
+    ]);
+    foreach ($signers as $signer) {
+        WorkflowMasterEntry::create(['user_id' => $owner->id, 'target_user_id' => $signer->id, 'type' => 'signer']);
+    }
+    WorkflowMasterEntry::create(['user_id' => $owner->id, 'target_user_id' => $approver->id, 'type' => 'approver']);
+    $doc = Document::factory()->for($owner, 'owner')->create([
+        'status' => DocumentStatus::Draft,
+        'signer_id' => $signers[0]->id,
+    ]);
+
+    app(DocumentWorkflow::class)->configure(
+        $doc,
+        $owner,
+        [$approver->id],
+        $signers->pluck('id')->all(),
+        new UploadedFile(base_path('tests/Fixtures/two-signers.pdf'), 'two-signers.pdf', 'application/pdf', null, true),
+    );
+
+    $steps = $doc->fresh()->currentCycle()->signatures()->orderBy('sequence')->get();
+    expect($steps[0]->specimen_format)->toBe('framed')
+        ->and($steps[0]->placement_source)->toBe('placeholder')
+        ->and($steps[0]->specimen_scope)->toBe('selected_pages')
+        ->and($steps[0]->specimen_pages)->toBe([1])
+        ->and($steps[0]->specimen_positions['1'])->toHaveKeys(['x', 'y', 'width', 'height']);
+});
+
 test('all-page specimen scope is persisted and validated', function () {
     [$doc, $owner, $signer, $cycle, $position] = specimenFixture();
     $position['specimen_scope'] = 'all_pages';

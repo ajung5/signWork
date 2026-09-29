@@ -150,11 +150,6 @@ class DocumentWorkflow
                     if (count($signers) === 1 && ! $matches) {
                         $matches = $metadata['placeholders']['${tandatangan_naskah}'] ?? [];
                     }
-                    if (count($matches) > 1) {
-                        throw ValidationException::withMessages([
-                            'pdf' => 'Placeholder '.$placeholder.' muncul lebih dari sekali. Perbaiki PDF sumber.',
-                        ]);
-                    }
                     $position = $matches[0] ?? null;
                     $old = $oldSignatures->get($id);
                     if (! $position && ! $upload && $old) {
@@ -169,6 +164,25 @@ class DocumentWorkflow
                             'specimen_positions',
                         ]);
                     }
+                    if ($matches && count(array_unique(array_column($matches, 'page'))) !== count($matches)) {
+                        throw ValidationException::withMessages([
+                            'pdf' => 'Placeholder '.$placeholder.' hanya boleh satu kali pada setiap halaman.',
+                        ]);
+                    }
+                    $placeholderPositions = collect($matches)
+                        ->mapWithKeys(fn (array $match): array => [
+                            (string) $match['page'] => [
+                                'x' => (float) $match['x'],
+                                'y' => (float) $match['y'],
+                                'width' => SpecimenTemplate::QR_SIZE,
+                                'height' => SpecimenTemplate::QR_SIZE,
+                            ],
+                        ])
+                        ->all();
+                    $profile = app(SpecimenTemplate::class)->profile(User::findOrFail($id));
+                    $defaultFormat = $matches && $this->hasCompleteSpecimenProfile($profile)
+                        ? 'framed'
+                        : 'qr_2cm';
                     $cycle->signatures()->create([
                         'user_id' => $id,
                         'sequence' => $index + 1,
@@ -177,12 +191,16 @@ class DocumentWorkflow
                         'page' => $position['page'] ?? null,
                         'x' => $position['x'] ?? null,
                         'y' => $position['y'] ?? null,
-                        'specimen_format' => 'qr_2cm',
-                        'specimen_scope' => is_array($position)
+                        'specimen_format' => $defaultFormat,
+                        'specimen_scope' => $matches ? 'selected_pages' : (is_array($position)
                             ? $position['specimen_scope'] ?? 'all_pages'
-                            : 'all_pages',
-                        'specimen_pages' => is_array($position) ? $position['specimen_pages'] ?? null : null,
-                        'specimen_positions' => is_array($position) ? $position['specimen_positions'] ?? null : null,
+                            : 'all_pages'),
+                        'specimen_pages' => $matches
+                            ? array_map('intval', array_keys($placeholderPositions))
+                            : (is_array($position) ? $position['specimen_pages'] ?? null : null),
+                        'specimen_positions' => $matches
+                            ? $placeholderPositions
+                            : (is_array($position) ? $position['specimen_positions'] ?? null : null),
                         'width' => SpecimenTemplate::QR_SIZE,
                         'height' => SpecimenTemplate::QR_SIZE,
                         'placement_source' => $matches ? 'placeholder' : 'manual',
@@ -256,6 +274,7 @@ class DocumentWorkflow
                             'specimen_format',
                             'specimen_scope',
                             'specimen_pages',
+                            'specimen_positions',
                             'profile_snapshot',
                         ])
                     );
@@ -306,26 +325,6 @@ class DocumentWorkflow
                 if (! in_array($format, ['framed', 'qr_2cm', 'qr_3cm'], true)) {
                     throw ValidationException::withMessages(['positions' => 'Pilih format berbingkai atau QR saja.']);
                 }
-                $scope = $positions[$index]['specimen_scope'] ?? 'selected_page';
-                if (! in_array($scope, ['all_pages', 'selected_pages', 'selected_page'], true)) {
-                    throw ValidationException::withMessages([
-                        'positions' => 'Pilih cakupan semua halaman atau beberapa halaman.',
-                    ]);
-                }
-                $selectedPages = collect($positions[$index]['specimen_pages'] ?? [])
-                    ->map(fn (mixed $page): int => (int) $page)
-                    ->filter(fn (int $page): bool => $page > 0)
-                    ->unique()
-                    ->values()
-                    ->all();
-                if ($scope === 'selected_page') {
-                    $selectedPages = [(int) ($positions[$index]['page'] ?? 0)];
-                }
-                if ($scope === 'selected_pages' && $selectedPages === []) {
-                    throw ValidationException::withMessages([
-                        'positions' => 'Pilih minimal satu halaman untuk spesimen.',
-                    ]);
-                }
                 $choice = $options[$index]['layouts'][$format];
                 if (isset($choice['error'])) {
                     throw ValidationException::withMessages(['positions' => $choice['error']]);
@@ -342,35 +341,87 @@ class DocumentWorkflow
                         'positions' => 'Profil signer berubah. Muat ulang preview lalu konfirmasi kembali.',
                     ]);
                 }
-                $basePosition = collect($positions[$index])
-                    ->only(['x', 'y'])
-                    ->map(fn (mixed $value): float => (float) $value)
-                    ->all();
-                $rawPagePositions = is_array($positions[$index]['specimen_positions'] ?? null)
-                    ? $positions[$index]['specimen_positions']
-                    : [];
-                $pagePositions = [];
-                foreach ($selectedPages as $pageNumber) {
-                    $pagePosition = $rawPagePositions[(string) $pageNumber]
-                        ?? $rawPagePositions[$pageNumber]
-                        ?? null;
-                    if ($scope !== 'selected_pages') {
-                        $pagePosition ??= $basePosition;
+                $isPlaceholder = $step->placement_source === 'placeholder';
+                if ($isPlaceholder) {
+                    $matches = $cycle->pdf_metadata['placeholders'][$step->placeholder] ?? [];
+                    if (! $matches && $step->placeholder === '${tte:signer:1}' && $steps->count() === 1) {
+                        $matches = $cycle->pdf_metadata['placeholders']['${tandatangan_naskah}'] ?? [];
                     }
-                    if (! isset($pagePosition['x'], $pagePosition['y'])) {
+                    $scope = 'selected_pages';
+                    $selectedPages = [];
+                    $pagePositions = [];
+                    foreach ($matches as $match) {
+                        $pageNumber = (int) ($match['page'] ?? 0);
+                        if ($pageNumber < 1 || in_array($pageNumber, $selectedPages, true)) {
+                            throw ValidationException::withMessages([
+                                'positions' => 'Placeholder signer harus muncul satu kali pada setiap halaman.',
+                            ]);
+                        }
+                        $selectedPages[] = $pageNumber;
+                        $pagePositions[(string) $pageNumber] = [
+                            'x' => (float) $match['x'],
+                            'y' => (float) $match['y'],
+                            'width' => $choice['width'],
+                            'height' => $choice['height'],
+                        ];
+                    }
+                    if ($selectedPages === []) {
                         throw ValidationException::withMessages([
-                            'positions' => 'Posisi spesimen setiap halaman terpilih wajib ditentukan.',
+                            'positions' => 'Placeholder signer tidak ditemukan pada PDF sumber.',
                         ]);
                     }
-                    $pagePositions[(string) $pageNumber] = [
-                        'x' => (float) $pagePosition['x'],
-                        'y' => (float) $pagePosition['y'],
-                        'width' => $choice['width'],
-                        'height' => $choice['height'],
-                    ];
+                } else {
+                    $scope = $positions[$index]['specimen_scope'] ?? 'selected_page';
+                    if (! in_array($scope, ['all_pages', 'selected_pages', 'selected_page'], true)) {
+                        throw ValidationException::withMessages([
+                            'positions' => 'Pilih cakupan semua halaman atau beberapa halaman.',
+                        ]);
+                    }
+                    $selectedPages = collect($positions[$index]['specimen_pages'] ?? [])
+                        ->map(fn (mixed $page): int => (int) $page)
+                        ->filter(fn (int $page): bool => $page > 0)
+                        ->unique()
+                        ->values()
+                        ->all();
+                    if ($scope === 'selected_page') {
+                        $selectedPages = [(int) ($positions[$index]['page'] ?? 0)];
+                    }
+                    if ($scope === 'selected_pages' && $selectedPages === []) {
+                        throw ValidationException::withMessages([
+                            'positions' => 'Pilih minimal satu halaman untuk spesimen.',
+                        ]);
+                    }
+                    $basePosition = collect($positions[$index])
+                        ->only(['x', 'y'])
+                        ->map(fn (mixed $value): float => (float) $value)
+                        ->all();
+                    $rawPagePositions = is_array($positions[$index]['specimen_positions'] ?? null)
+                        ? $positions[$index]['specimen_positions']
+                        : [];
+                    $pagePositions = [];
+                    foreach ($selectedPages as $pageNumber) {
+                        $pagePosition = $rawPagePositions[(string) $pageNumber]
+                            ?? $rawPagePositions[$pageNumber]
+                            ?? null;
+                        if ($scope !== 'selected_pages') {
+                            $pagePosition ??= $basePosition;
+                        }
+                        if (! isset($pagePosition['x'], $pagePosition['y'])) {
+                            throw ValidationException::withMessages([
+                                'positions' => 'Posisi spesimen setiap halaman terpilih wajib ditentukan.',
+                            ]);
+                        }
+                        $pagePositions[(string) $pageNumber] = [
+                            'x' => (float) $pagePosition['x'],
+                            'y' => (float) $pagePosition['y'],
+                            'width' => $choice['width'],
+                            'height' => $choice['height'],
+                        ];
+                    }
                 }
                 $firstPagePosition = $pagePositions[(string) ($selectedPages[0] ?? 0)] ?? [
-                    ...$basePosition,
+                    'x' => (float) ($positions[$index]['x'] ?? 0),
+                    'y' => (float) ($positions[$index]['y'] ?? 0),
                     'width' => $choice['width'],
                     'height' => $choice['height'],
                 ];
@@ -386,7 +437,7 @@ class DocumentWorkflow
                     'specimen_positions' => $scope === 'selected_pages' ? $pagePositions : null,
                     'profile_snapshot' => $profile,
                     'name_snapshot' => $profile['name'],
-                    'placement_source' => 'manual',
+                    'placement_source' => $isPlaceholder ? 'placeholder' : 'manual',
                 ];
             }
             $this->pdf->run('validate', $cycle->original_path, ['steps' => $validated]);
@@ -585,6 +636,13 @@ class DocumentWorkflow
         }
 
         return $prepared;
+    }
+
+    /** @param array<string, string> $profile */
+    private function hasCompleteSpecimenProfile(array $profile): bool
+    {
+        return collect(['name', 'jabatan', 'unit_kerja', 'pangkat', 'golongan'])
+            ->every(fn (string $key): bool => trim((string) ($profile[$key] ?? '')) !== '');
     }
 
     private function cycle(Document $document, string $token): DocumentCycle

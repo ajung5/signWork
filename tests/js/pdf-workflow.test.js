@@ -33,17 +33,22 @@ class Element {
     getAttribute(name) { return this.attributes[name] ?? null; }
 }
 
-function editor({ error = null, x = 500, y = 720, extraStep = false, pageWidth = 595, pageCount = 3, missingPages = [] } = {}) {
+function editor({ error = null, x = 500, y = 720, extraStep = false, pageWidth = 595, pageCount = 3, missingPages = [], placeholder = false } = {}) {
     const layouts = {
         qr_2cm: { width: 56.693, height: 56.693, preview: 'data:image/png;base64,qr' },
         qr_3cm: { width: 85.039, height: 85.039, preview: 'data:image/png;base64,qr3' },
         framed: error ? { error } : { width: 297.638, height: 133, preview: 'data:image/png;base64,frame' },
     };
     const steps = [{ id: 1, name_snapshot: 'Rizky Hidayat', page: 1, x, y,
-        width: 56.693, height: 56.693, specimen_format: 'qr_2cm',
-        specimen_scope: missingPages.length ? 'selected_pages' : 'all_pages',
-        specimen_pages: missingPages.length ? [1, 2, 3] : undefined,
-        specimen_positions: missingPages.length ? { 1: { x, y, width: 56.693, height: 56.693 } } : undefined,
+        width: placeholder ? 297.638 : 56.693, height: placeholder ? 133 : 56.693,
+        specimen_format: placeholder ? 'framed' : 'qr_2cm',
+        placement_source: placeholder ? 'placeholder' : 'manual',
+        specimen_scope: placeholder || missingPages.length ? 'selected_pages' : 'all_pages',
+        specimen_pages: placeholder || missingPages.length ? [1, 2, 3] : undefined,
+        specimen_positions: placeholder || missingPages.length ? {
+            1: { x, y, width: 56.693, height: 56.693 },
+            ...(placeholder ? { 2: { x: 120, y: 240, width: 56.693, height: 56.693 }, 3: { x: 180, y: 300, width: 56.693, height: 56.693 } } : {}),
+        } : undefined,
         profile_fingerprint: 'hash', layouts }];
     if (extraStep) steps.push({ ...steps[0], id: 2, name_snapshot: 'Signer Dua', x: 350, y: 100 });
     const fields = Object.fromEntries(['active-signer', 'scope', 'page', 'page-surface', 'page-image', 'blocks',
@@ -84,6 +89,18 @@ test('switching to a valid frame keeps it within the page and allows confirmatio
     assert.ok(ui.position('x') + ui.position('width') <= 595);
     assert.ok(ui.position('y') + ui.position('height') <= 842);
     assert.match(ui.field('blocks').children[0].children[0].src, /frame$/);
+});
+
+test('placeholder mode keeps every detected page position and changes only its format geometry', () => {
+    const ui = editor({ placeholder: true, x: 80, y: 120 });
+    ui.fire('page-image', 'load');
+    ui.select('framed');
+
+    const inputs = ui.field('position-inputs').children;
+    const pageWidth = inputs.find((input) => input.name === 'positions[0][specimen_positions][2][width]');
+    const pageHeight = inputs.find((input) => input.name === 'positions[0][specimen_positions][3][height]');
+    assert.equal(Number(pageWidth.value), 297.638);
+    assert.equal(Number(pageHeight.value), 133);
 });
 
 test('missing profile explains disabled confirmation without emitting a broken image', () => {

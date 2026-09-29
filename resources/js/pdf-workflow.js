@@ -42,6 +42,7 @@ ready(() => {
     const zoom = root.querySelector('[data-zoom]');
     const scroller = root.querySelector('[data-preview-scroll]');
     const format = root.querySelector('[data-format]');
+    const placeholderHelp = root.querySelector('[data-placeholder-help]');
     const setStatus = (message, invalid = false) => statuses.forEach(status => {
         status.textContent = message;
         status.classList.toggle('text-red-700', invalid);
@@ -55,6 +56,7 @@ ready(() => {
         return step.page ? [Number(step.page)] : [];
     };
     const hasCoordinates = (position) => position && ['x', 'y', 'width', 'height'].every((key) => position[key] !== null && position[key] !== undefined && Number.isFinite(Number(position[key])));
+    const isPlaceholderStep = (step) => step?.placement_source === 'placeholder';
     const pagePosition = (step, pageNumber) => {
         const saved = step.specimen_scope === 'selected_pages'
             ? step.specimen_positions?.[String(pageNumber)] ?? step.specimen_positions?.[pageNumber]
@@ -115,7 +117,13 @@ ready(() => {
         step.specimen_positions = step.specimen_positions && typeof step.specimen_positions === 'object' ? step.specimen_positions : {};
         ['x', 'y', 'width', 'height'].forEach((key) => { if (step[key] !== null && step[key] !== undefined) step[key] = Number(step[key]); });
         step.specimen_format = !step.specimen_format || step.specimen_format === 'qr_only' ? 'qr_2cm' : step.specimen_format;
-        if (step.specimen_scope === 'selected_page') {
+        if (isPlaceholderStep(step)) {
+            step.specimen_scope = 'selected_pages';
+            step.specimen_pages = Object.keys(step.specimen_positions)
+                .map(Number)
+                .filter(Number.isFinite)
+                .sort((a, b) => a - b);
+        } else if (step.specimen_scope === 'selected_page') {
             step.specimen_scope = 'selected_pages';
             step.specimen_pages = step.page ? [Number(step.page)] : [];
         } else {
@@ -126,6 +134,12 @@ ready(() => {
         if (choice && !choice.error) {
             step.width = choice.width;
             step.height = choice.height;
+            if (isPlaceholderStep(step)) {
+                Object.values(step.specimen_positions).forEach((position) => {
+                    position.width = choice.width;
+                    position.height = choice.height;
+                });
+            }
         }
         materializeInitialPagePosition(step);
     });
@@ -373,6 +387,11 @@ ready(() => {
         if (!pagePicker) return;
         pagePicker.replaceChildren();
         const step = active();
+        if (isPlaceholderStep(step)) {
+            pagePicker.classList.toggle('hidden', true);
+            return;
+        }
+        pagePicker.classList.toggle('hidden', false);
         if (step.specimen_scope === 'all_pages') {
             pagePicker.textContent = 'Spesimen akan dicetak pada semua halaman dengan posisi yang sama.';
             return;
@@ -461,11 +480,15 @@ ready(() => {
         updateOptions();
     };
     const controls = () => {
-        format.value = active().specimen_format;
-        scope.value = active().specimen_scope;
+        const step = active();
+        const placeholderMode = isPlaceholderStep(step);
+        format.value = step.specimen_format;
+        scope.value = step.specimen_scope;
+        root.querySelectorAll('[data-manual-control]').forEach((control) => control.classList.toggle('hidden', placeholderMode));
+        placeholderHelp?.classList.toggle('hidden', !placeholderMode);
         renderPageOptions();
         renderPagePicker();
-        const choice = active().layouts[active().specimen_format];
+        const choice = step.layouts[step.specimen_format];
         root.querySelector('[data-dimension-hint]').textContent = choice?.error || (choice ? `Ukuran otomatis: ${(choice.width / pointsPerCm).toFixed(2)} × ${(choice.height / pointsPerCm).toFixed(2)} cm. Posisi disimpan per halaman saat memilih beberapa halaman.` : 'Format spesimen tidak tersedia. Muat ulang halaman.');
     };
     const load = () => {

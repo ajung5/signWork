@@ -2,16 +2,7 @@
 @section('title', 'PDF & Alur - SignWork')
 @section('content')
 <div class="mx-auto max-w-6xl space-y-6">
-    <a href="{{ route('documents.show', $document) }}"
-        aria-label="Kembali ke detail dokumen"
-        class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800">
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-            class="h-4 w-4">
-            <path d="M19 12H5" />
-            <path d="m11 18-6-6 6-6" />
-        </svg>
-        Kembali ke dokumen
-    </a>
+    <a href="{{ route('documents.show', $document) }}" class="text-sm text-blue-700">← Kembali ke dokumen</a>
     <h1 class="text-2xl font-semibold">PDF & Alur · {{ $document->title }}</h1>
     <p class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Mode simulasi. Jangan memasukkan passphrase BSrE. Siapkan ruang kosong untuk QR. Pilih spesimen berbingkai, QR 2 × 2 cm, atau QR 3 × 3 cm. Ukuran dihitung otomatis.</p>
     <form action="{{ route('documents.pdf.store', $document) }}" method="POST" enctype="multipart/form-data" class="space-y-5 rounded-xl border border-slate-200 bg-white p-6">
@@ -61,16 +52,17 @@
         data-preview-url="{{ route('documents.pdf.preview', $document) }}"
         data-pages="{{ json_encode($cycle->pdf_metadata['pages']) }}"
         data-steps="{{ json_encode($specimenSteps) }}">
-        <h2 class="text-lg font-semibold">2. Periksa posisi QR pada preview</h2>
-        <p class="text-sm text-slate-600">Pilih signer, cakupan halaman, lalu pilih beberapa halaman bila diperlukan. Klik area kosong atau geser blok pada PDF untuk menentukan posisi. Untuk <strong>Semua halaman</strong>, posisi yang dipilih menjadi posisi yang sama pada setiap halaman. Untuk <strong>beberapa halaman</strong>, dropdown preview hanya menampilkan halaman yang dicentang dan setiap halaman wajib diatur secara terpisah.</p>
+        <h2 class="text-lg font-semibold">2. Atur spesimen pada preview</h2>
+        <p class="text-sm text-slate-600">Untuk dokumen biasa, pilih cakupan halaman dan atur posisi spesimen melalui preview. Untuk dokumen dengan placeholder, posisi mengikuti placeholder secara otomatis dan Anda hanya perlu memilih signer serta format spesimen.</p>
         <div class="z-10 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-0 lg:grid-cols-6">
             <label class="text-sm">Signer <select data-active-signer class="mt-1 block w-full min-w-0 rounded border border-slate-300 p-2"></select></label>
-            <label class="text-sm">Cakupan QR <select data-scope class="mt-1 block w-full min-w-0 rounded border border-slate-300 p-2"><option value="all_pages">Semua halaman</option><option value="selected_pages">Pilih beberapa halaman</option></select></label>
-            <label class="text-sm">Preview halaman terpilih <select data-page class="mt-1 block w-full min-w-0 rounded border border-slate-300 p-2"></select></label>
-            <label class="text-sm">Zoom <select data-zoom class="mt-1 block w-full min-w-0 rounded border border-slate-300 p-2"><option value="1">Pas halaman</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option></select></label>
+            <label data-manual-control class="text-sm">Cakupan QR <select data-scope class="mt-1 block w-full min-w-0 rounded border border-slate-300 p-2"><option value="all_pages">Semua halaman</option><option value="selected_pages">Pilih beberapa halaman</option></select></label>
+            <label data-manual-control class="text-sm">Preview halaman terpilih <select data-page class="mt-1 block w-full min-w-0 rounded border border-slate-300 p-2"></select></label>
+            <label data-manual-control class="text-sm">Zoom <select data-zoom class="mt-1 block w-full min-w-0 rounded border border-slate-300 p-2"><option value="1">Pas halaman</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option></select></label>
             <label class="text-sm">Format spesimen <select data-format class="mt-1 w-full rounded border border-slate-300 p-2"><option value="framed">1. QR Code dengan Teks</option><option value="qr_2cm">2. QR Code (2 × 2 cm)</option><option value="qr_3cm">3. QR Code (3 × 3 cm)</option></select></label>
-            <button type="button" data-reset-position class="self-end rounded-lg border border-blue-200 bg-blue-50 p-2 text-sm text-blue-800">Letakkan di tengah halaman</button>
+            <button type="button" data-manual-control data-reset-position class="self-end rounded-lg border border-blue-200 bg-blue-50 p-2 text-sm text-blue-800">Letakkan di tengah halaman</button>
         </div>
+        <p data-placeholder-help class="hidden rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm text-violet-900">Placeholder terdeteksi. Posisi spesimen mengikuti lokasi placeholder pada setiap halaman. Pilih signer dan format spesimen saja.</p>
         <div data-page-picker class="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm" aria-live="polite"></div>
         <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-slate-700">
             <p>Format 1: QR Code 2 × 2 cm dengan teks identitas penandatangan. Format 2: QR Code saja 2 × 2 cm. Format 3: QR Code saja 3 × 3 cm. Semua ukuran dihitung otomatis dan tidak menggunakan ukuran manual.</p>

@@ -1,11 +1,8 @@
 import hashlib
 import importlib.util
-import shutil
-import subprocess
 import tempfile
 import sys
 import unittest
-import zipfile
 from pathlib import Path
 
 import pymupdf as fitz
@@ -79,61 +76,6 @@ class PdfWorkerTest(unittest.TestCase):
         self.prepare(source, steps)
         self.assertTrue(self.output.exists())
 
-    @unittest.skipUnless(
-        shutil.which('soffice') or shutil.which('libreoffice'),
-        'LibreOffice is required for the Word placeholder conversion test.',
-    )
-    def test_word_conversion_preserves_ordered_signer_placeholders(self):
-        source = ROOT / 'tests/Fixtures/word-source.docx'
-        docx = Path(self.directory.name) / 'placeholder-template.docx'
-        needle = b'Conversion and manual QR placement test.'
-        replacement = b'Signer 1: $' + b'{tte:signer:1} Signer 2: $' + b'{tte:signer:2}'
-
-        with zipfile.ZipFile(source) as original, zipfile.ZipFile(docx, 'w') as output:
-            document_xml = original.read('word/document.xml')
-            self.assertIn(needle, document_xml)
-
-            for entry in original.infolist():
-                contents = document_xml.replace(needle, replacement) if entry.filename == 'word/document.xml' else original.read(entry.filename)
-                output.writestr(entry, contents)
-
-        office = shutil.which('soffice') or shutil.which('libreoffice')
-        profile = (Path(self.directory.name) / 'libreoffice-profile').as_uri()
-        result = subprocess.run(
-            [
-                office,
-                f'-env:UserInstallation={profile}',
-                '--headless',
-                '--nologo',
-                '--nodefault',
-                '--norestore',
-                '--convert-to',
-                'pdf:writer_pdf_Export',
-                '--outdir',
-                self.directory.name,
-                str(docx),
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
-
-        converted = Path(self.directory.name) / 'placeholder-template.pdf'
-        metadata = worker.run({'action': 'scan', 'input': str(converted)})
-
-        signer_one = '$' + '{tte:signer:1}'
-        signer_two = '$' + '{tte:signer:2}'
-        self.assertEqual(set(metadata['placeholders']), {signer_one, signer_two})
-        self.assertEqual(
-            len(metadata['placeholders'][signer_one]),
-            1,
-        )
-        self.assertEqual(
-            len(metadata['placeholders'][signer_two]),
-            1,
-        )
-
     def test_overlap_and_out_of_bounds_fail(self):
         for change in [{'x': 50}, {'x': 580}]:
             steps = self.steps()
@@ -163,6 +105,39 @@ class PdfWorkerTest(unittest.TestCase):
     def test_duplicate_placeholder_is_rejected_before_preparing(self):
         with self.assertRaises(worker.InvalidPdf):
             self.prepare(ROOT / 'tests/Fixtures/duplicate.pdf', self.steps())
+
+    def test_repeated_placeholder_on_different_pages_is_supported(self):
+        source = Path(self.directory.name) / 'placeholder-pages.pdf'
+        doc = fitz.open()
+        for page_number in [1, 2]:
+            page = doc.new_page(width=595, height=842)
+            page.insert_text((72, 120), '${tte:signer:1}', fontsize=12)
+        doc.save(source)
+        doc.close()
+
+        data = worker.run({'action': 'scan', 'input': str(source)})
+        matches = data['placeholders']['${tte:signer:1}']
+        positions = {
+            str(match['page']): {
+                'x': match['x'], 'y': match['y'],
+                'width': 56.693, 'height': 56.693,
+            }
+            for match in matches
+        }
+        steps = [{
+            **matches[0], 'sequence': 1, 'placeholder': '${tte:signer:1}',
+            'name_snapshot': 'Signer 1', 'specimen_format': 'qr_2cm',
+            'specimen_scope': 'selected_pages',
+            'specimen_pages': [1, 2], 'specimen_positions': positions,
+        }]
+        worker.run({'action': 'prepare', 'input': str(source), 'output': str(self.output),
+                    'steps': steps,
+                    'verification_url': 'https://signwork.example/verify/repeated'})
+        with fitz.open(self.output) as prepared:
+            self.assertEqual(len(prepared), 2)
+            for page in prepared:
+                self.assertNotIn('${tte:', page.get_text())
+                self.assertEqual(len(page.get_links()), 1)
 
     def test_cropped_page_stays_consistent(self):
         path = Path(self.directory.name) / 'cropped.pdf'

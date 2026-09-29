@@ -159,10 +159,9 @@ def prepare(doc, payload):
         matches = metadata['placeholders'].get(token, [])
         if token == '${tte:signer:1}' and not matches and len(steps) == 1:
             matches = metadata['placeholders'].get('${tandatangan_naskah}', [])
-        if len(matches) > 1:
-            raise InvalidPdf('Placeholder duplikat. Gunakan satu placeholder per signer.')
-        if matches:
-            match = matches[0]
+        if len({match['page'] for match in matches}) != len(matches):
+            raise InvalidPdf('Placeholder duplikat. Gunakan maksimal satu placeholder per signer pada setiap halaman.')
+        for match in matches:
             doc[match['page'] - 1].add_redact_annot(fitz.Rect(match['text_rect']), fill=(1, 1, 1))
     for page in doc:
         page.apply_redactions(images=0, graphics=0)
