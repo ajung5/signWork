@@ -345,7 +345,8 @@ ready(() => {
             const block = document.createElement('button');
             block.type = 'button';
             block.dataset.index = i;
-            block.className = 'absolute cursor-move overflow-hidden bg-white';
+            const placeholderMode = isPlaceholderStep(step);
+            block.className = `absolute ${placeholderMode ? 'cursor-default' : 'cursor-move'} overflow-hidden bg-white`;
             block.style.left = `${position.x / page().width * 100}%`;
             block.style.top = `${position.y / (page().height + footerHeight) * 100}%`;
             block.style.width = `${position.width / page().width * 100}%`;
@@ -363,7 +364,10 @@ ready(() => {
                 block.textContent = `Signer ${i + 1}: spesimen belum tersedia.`;
                 block.className += ' border border-red-300 bg-red-50 p-1 text-xs text-red-700';
             }
-            block.setAttribute('aria-label', `Geser blok ${step.name_snapshot} pada halaman ${pageSelect.value}`);
+            block.setAttribute('aria-label', placeholderMode
+                ? `Posisi otomatis ${step.name_snapshot} pada halaman ${pageSelect.value}`
+                : `Geser blok ${step.name_snapshot} pada halaman ${pageSelect.value}`);
+            if (placeholderMode) block.tabIndex = -1;
             blocks.append(block);
         });
         const validation = collectIssues();
@@ -489,7 +493,10 @@ ready(() => {
         renderPageOptions();
         renderPagePicker();
         const choice = step.layouts[step.specimen_format];
-        root.querySelector('[data-dimension-hint]').textContent = choice?.error || (choice ? `Ukuran otomatis: ${(choice.width / pointsPerCm).toFixed(2)} × ${(choice.height / pointsPerCm).toFixed(2)} cm. Posisi disimpan per halaman saat memilih beberapa halaman.` : 'Format spesimen tidak tersedia. Muat ulang halaman.');
+        root.querySelector('[data-dimension-hint]').textContent = choice?.error || (choice
+            ? `Ukuran otomatis: ${(choice.width / pointsPerCm).toFixed(2)} × ${(choice.height / pointsPerCm).toFixed(2)} cm. ${placeholderMode ? 'Posisi mengikuti semua placeholder.' : 'Posisi disimpan per halaman saat memilih beberapa halaman.'}`
+            : 'Format spesimen tidak tersedia. Muat ulang halaman.');
+        surface.style.touchAction = placeholderMode ? 'auto' : 'none';
     };
     const load = () => {
         loaded = false;
@@ -533,7 +540,7 @@ ready(() => {
         controls(); draw();
     });
     surface.addEventListener('pointerdown', (event) => {
-        if (!loaded) return;
+        if (!loaded || isPlaceholderStep(active())) return;
         event.preventDefault();
         const block = event.target.closest('[data-index]');
         if (block) signerSelect.value = block.dataset.index;
@@ -550,7 +557,7 @@ ready(() => {
     surface.addEventListener('pointercancel', () => { drag = null; });
     surface.addEventListener('keydown', (event) => {
         const block = event.target.closest('[data-index]');
-        if (!block || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+        if (!block || isPlaceholderStep(steps[Number(block.dataset.index)]) || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return;
         event.preventDefault();
         signerSelect.value = block.dataset.index;
         const step = active();

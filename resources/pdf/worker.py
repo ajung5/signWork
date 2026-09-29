@@ -17,6 +17,9 @@ class InvalidPdf(ValueError):
     pass
 
 
+PLACEHOLDER_PATTERN = re.compile(r'\$\{tte:signer:[1-9][0-9]*\}|\$\{tandatangan_naskah\}')
+
+
 def open_pdf(path, normalize=True):
     doc = fitz.open(path)
     if not doc.is_pdf or doc.needs_pass or len(doc) < 1:
@@ -39,13 +42,60 @@ def open_pdf(path, normalize=True):
     return doc
 
 
+def _word_lines(page):
+    lines = {}
+    for word in page.get_text('words'):
+        x0, y0, x1, y1, text, block_number, line_number, word_number = word
+        lines.setdefault((block_number, line_number), []).append(
+            (int(word_number), fitz.Rect(x0, y0, x1, y1), text)
+        )
+    return [sorted(words, key=lambda word: word[0]) for words in lines.values()]
+
+
+def _fallback_placeholder_rects(page, token):
+    rects = []
+    for words in _word_lines(page):
+        joined = ''
+        owners = []
+        for _, rect, text in words:
+            compact = re.sub(r'\s+', '', text)
+            joined += compact
+            owners.extend([rect] * len(compact))
+        offset = 0
+        while True:
+            start = joined.find(token, offset)
+            if start < 0:
+                break
+            end = start + len(token)
+            owned = owners[start:end]
+            if owned:
+                rect = fitz.Rect(owned[0])
+                for word_rect in owned[1:]:
+                    rect |= word_rect
+                rects.append(rect)
+            offset = end
+    return rects
+
+
+def _placeholder_tokens(page):
+    tokens = set(PLACEHOLDER_PATTERN.findall(page.get_text()))
+    for words in _word_lines(page):
+        joined = ''.join(re.sub(r'\s+', '', text) for _, _, text in words)
+        tokens.update(PLACEHOLDER_PATTERN.findall(joined))
+    return tokens
+
+
+def _placeholder_rects(page, token):
+    rects = list(page.search_for(token))
+    return rects or _fallback_placeholder_rects(page, token)
+
+
 def scan(doc):
     pages, placeholders = [], {}
     for index, page in enumerate(doc):
         pages.append({'page': index + 1, 'width': page.rect.width, 'height': page.rect.height})
-        text = page.get_text()
-        for token in set(re.findall(r'\$\{tte:signer:[1-9][0-9]*\}|\$\{tandatangan_naskah\}', text)):
-            for rect in page.search_for(token):
+        for token in _placeholder_tokens(page):
+            for rect in _placeholder_rects(page, token):
                 placeholders.setdefault(token, []).append({
                     'page': index + 1, 'x': rect.x0, 'y': rect.y0,
                     'text_rect': list(rect), 'width': 160, 'height': 110,

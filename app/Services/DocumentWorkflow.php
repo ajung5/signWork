@@ -95,6 +95,7 @@ class DocumentWorkflow
                     $hash = $this->pdf->hash($path);
                 } else {
                     $this->pdf->ensureHash($path, $hash);
+                    $metadata = $this->pdf->run('scan', $path);
                 }
                 $expectedTokens = [];
                 foreach (array_keys($signers) as $index) {
@@ -103,15 +104,28 @@ class DocumentWorkflow
                 if (count($signers) === 1) {
                     $expectedTokens[] = '${tandatangan_naskah}';
                 }
-                if (array_diff(array_keys($metadata['placeholders']), $expectedTokens)) {
+                $placeholders = is_array($metadata['placeholders'] ?? null) ? $metadata['placeholders'] : [];
+                $detectedTokens = array_keys($placeholders);
+                if (array_diff($detectedTokens, $expectedTokens)) {
                     throw ValidationException::withMessages([
                         'pdf' => 'Ada placeholder tanpa signer yang sesuai. Sesuaikan template dengan jumlah dan urutan signer.',
                     ]);
                 }
+                $expectedSignerTokens = array_values(array_filter(
+                    $expectedTokens,
+                    fn (string $token): bool => $token !== '${tandatangan_naskah}'
+                ));
+                $detectedSignerTokens = array_intersect($detectedTokens, $expectedSignerTokens);
+                if ($detectedSignerTokens && array_diff($expectedSignerTokens, $detectedTokens)) {
+                    $missing = implode(', ', array_diff($expectedSignerTokens, $detectedTokens));
+                    throw ValidationException::withMessages([
+                        'pdf' => 'Placeholder signer belum lengkap. Tidak ditemukan: '.$missing.'. Tambahkan placeholder untuk setiap signer sesuai urutan.',
+                    ]);
+                }
                 if (
                     isset(
-                        $metadata['placeholders']['${tte:signer:1}'],
-                        $metadata['placeholders']['${tandatangan_naskah}']
+                        $placeholders['${tte:signer:1}'],
+                        $placeholders['${tandatangan_naskah}']
                     )
                 ) {
                     throw ValidationException::withMessages([
@@ -146,9 +160,9 @@ class DocumentWorkflow
                 }
                 foreach ($signers as $index => $id) {
                     $placeholder = '${tte:signer:'.($index + 1).'}';
-                    $matches = $metadata['placeholders'][$placeholder] ?? [];
+                    $matches = $placeholders[$placeholder] ?? [];
                     if (count($signers) === 1 && ! $matches) {
-                        $matches = $metadata['placeholders']['${tandatangan_naskah}'] ?? [];
+                        $matches = $placeholders['${tandatangan_naskah}'] ?? [];
                     }
                     $position = $matches[0] ?? null;
                     $old = $oldSignatures->get($id);

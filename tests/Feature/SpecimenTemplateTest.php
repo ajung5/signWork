@@ -136,7 +136,58 @@ test('placeholder documents default to framed format and preserve every placehol
         ->and($steps[0]->placement_source)->toBe('placeholder')
         ->and($steps[0]->specimen_scope)->toBe('selected_pages')
         ->and($steps[0]->specimen_pages)->toBe([1])
-        ->and($steps[0]->specimen_positions['1'])->toHaveKeys(['x', 'y', 'width', 'height']);
+        ->and($steps[0]->specimen_positions['1'])->toHaveKeys(['x', 'y', 'width', 'height'])
+        ->and($steps[1]->specimen_format)->toBe('framed')
+        ->and($steps[1]->placement_source)->toBe('placeholder')
+        ->and($steps[1]->specimen_pages)->toBe([1])
+        ->and($steps[1]->specimen_positions['1'])->toHaveKeys(['x', 'y', 'width', 'height']);
+});
+
+test('placeholder mode rejects a missing signer token instead of falling back to manual placement', function () {
+    Storage::fake('local');
+    $owner = User::factory()->create();
+    $approver = User::factory()->create();
+    $signers = User::factory()->count(2)->create();
+    foreach ($signers as $signer) {
+        WorkflowMasterEntry::create(['user_id' => $owner->id, 'target_user_id' => $signer->id, 'type' => 'signer']);
+    }
+    WorkflowMasterEntry::create(['user_id' => $owner->id, 'target_user_id' => $approver->id, 'type' => 'approver']);
+    $doc = Document::factory()->for($owner, 'owner')->create(['status' => DocumentStatus::Draft]);
+
+    expect(fn (): mixed => app(DocumentWorkflow::class)->configure(
+        $doc,
+        $owner,
+        [$approver->id],
+        $signers->pluck('id')->all(),
+        new UploadedFile(base_path('tests/Fixtures/duplicate.pdf'), 'placeholder.pdf', 'application/pdf', null, true),
+    ))->toThrow(\Illuminate\Validation\ValidationException::class, 'Placeholder signer belum lengkap');
+
+    expect($doc->fresh()->currentCycle())->toBeNull();
+});
+
+test('existing cycles are rescanned before placeholder configuration is rebuilt', function () {
+    Storage::fake('local');
+    $owner = User::factory()->create();
+    $approver = User::factory()->create();
+    $signers = User::factory()->count(2)->create([
+        'jabatan' => 'Pranata Komputer',
+        'unit_kerja' => 'Diskominfo',
+        'pangkat' => 'Penata',
+        'golongan' => 'III/c',
+    ]);
+    foreach ($signers as $signer) {
+        WorkflowMasterEntry::create(['user_id' => $owner->id, 'target_user_id' => $signer->id, 'type' => 'signer']);
+    }
+    WorkflowMasterEntry::create(['user_id' => $owner->id, 'target_user_id' => $approver->id, 'type' => 'approver']);
+    $doc = Document::factory()->for($owner, 'owner')->create(['status' => DocumentStatus::Draft]);
+    $workflow = app(DocumentWorkflow::class);
+    $upload = new UploadedFile(base_path('tests/Fixtures/two-signers.pdf'), 'placeholder.pdf', 'application/pdf', null, true);
+    $workflow->configure($doc, $owner, [$approver->id], $signers->pluck('id')->all(), $upload);
+    $cycle = $doc->fresh()->currentCycle();
+    $cycle->update(['pdf_metadata' => ['pages' => [], 'placeholders' => []]]);
+    $workflow->configure($doc->fresh(), $owner, [$approver->id], $signers->pluck('id')->all(), null);
+
+    expect($doc->fresh()->currentCycle()->signatures()->pluck('placement_source')->all())->toBe(['placeholder', 'placeholder']);
 });
 
 test('all-page specimen scope is persisted and validated', function () {

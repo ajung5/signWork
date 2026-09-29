@@ -68,11 +68,11 @@
             <p>Format 1: QR Code 2 × 2 cm dengan teks identitas penandatangan. Format 2: QR Code saja 2 × 2 cm. Format 3: QR Code saja 3 × 3 cm. Semua ukuran dihitung otomatis dan tidak menggunakan ukuran manual.</p>
             <p class="mt-2">Dokumen baru menggunakan cakupan semua halaman secara default. Jika memilih cakupan khusus, centang lebih dari satu halaman—misalnya halaman 1, 3, dan 5. Posisi tiap halaman disimpan terpisah dan dapat berbeda sesuai penempatan Anda.</p>
             <p class="mt-2">Footer simulasi ditambahkan pada pita baru setinggi 1,2 cm di bawah setiap halaman. Ukuran halaman bertambah tanpa mengecilkan isi surat. Blok spesimen harus berada di area surat, bukan di footer.</p>
-            <p class="mt-2">Jika PDF memuat placeholder seperti <code>${tte:signer:1}</code>, posisi awal akan dideteksi otomatis saat file diunggah. Anda tetap dapat menyesuaikannya melalui preview. Identitas disimpan saat posisi dikonfirmasi; perubahan profil berikutnya tidak mengubah dokumen ini.</p>
+            <p class="mt-2">Jika dokumen memuat placeholder seperti <code>${tte:signer:1}</code>, semua lokasi placeholder dideteksi otomatis. Pada mode ini preview bersifat read-only; Anda hanya memilih signer dan format spesimen. Identitas disimpan saat posisi dikonfirmasi; perubahan profil berikutnya tidak mengubah dokumen ini.</p>
         </div>
         <p data-dimension-hint class="text-xs text-slate-500"></p>
-        <div data-signer-progress class="flex flex-wrap gap-2 text-xs"></div>
-        <section class="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4" aria-labelledby="placement-checklist-title">
+        <div data-signer-progress data-manual-control class="flex flex-wrap gap-2 text-xs"></div>
+        <section data-manual-control class="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4" aria-labelledby="placement-checklist-title">
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <div>
                     <h3 id="placement-checklist-title" class="text-sm font-semibold text-slate-900">Checklist posisi QR</h3>

@@ -14,7 +14,15 @@ class Element {
         this.dataset = {};
         this.value = '';
         this.attributes = {};
-        this.classList = { toggle() {} };
+        this.classList = {
+            values: new Set(),
+            toggle: (name, force) => {
+                const enabled = force === undefined ? !this.classList.values.has(name) : force;
+                if (enabled) this.classList.values.add(name); else this.classList.values.delete(name);
+                return enabled;
+            },
+            contains: name => this.classList.values.has(name),
+        };
     }
     addEventListener(type, fn) { (this.listeners[type] ??= []).push(fn); }
     dispatchEvent(event) { for (const fn of this.listeners[event.type] ?? []) fn(event); }
@@ -57,11 +65,13 @@ function editor({ error = null, x = 500, y = 720, extraStep = false, pageWidth =
     fields['[data-zoom]'].value = '1';
     fields['[data-preview-scroll]'].clientWidth = 900;
     const statuses = [new Element(), new Element()];
+    const manualControls = ['scope', 'page', 'zoom', 'reset-position', 'signer-progress', 'page-checklist']
+        .map(name => fields[`[data-${name}]`]);
     const pages = Array.from({length: pageCount}, (_, index) => ({ page: index + 1, width: pageWidth, height: 842 }));
     const root = {
         dataset: { pages: JSON.stringify(pages), steps: JSON.stringify(steps), previewUrl: '/preview' },
         querySelector: selector => fields[selector],
-        querySelectorAll: () => statuses,
+        querySelectorAll: selector => selector === '[data-manual-control]' ? manualControls : statuses,
     };
     vm.runInNewContext(source, {
         document: { readyState: 'complete', querySelectorAll: () => [], querySelector: () => root, createElement: (tagName) => { const element = new Element(); element.tagName = tagName.toUpperCase(); return element; }, createTextNode: (text) => ({ textContent: text }) },
@@ -75,7 +85,7 @@ function editor({ error = null, x = 500, y = 720, extraStep = false, pageWidth =
     const position = key => Number(field('position-inputs').children.find(input => input.name === `positions[0][${key}]`).value);
     const submitted = key => field('position-inputs').children.find(input => input.name === `positions[0][${key}]`)?.value;
     const pageCheckbox = (pageNumber) => field('page-picker').querySelectorAll('input[type="checkbox"]').find((input) => Number(input.value) === pageNumber);
-    return { field, fire, select, position, submitted, statuses, pageCheckbox };
+    return { field, fire, select, position, submitted, statuses, pageCheckbox, manualControls };
 }
 
 test('switching to a valid frame keeps it within the page and allows confirmation', () => {
@@ -96,6 +106,9 @@ test('placeholder mode keeps every detected page position and changes only its f
     ui.fire('page-image', 'load');
     ui.select('framed');
 
+    assert.equal(ui.manualControls.every(control => control.classList.contains('hidden')), true);
+    assert.equal(ui.field('page-picker').classList.contains('hidden'), true);
+    assert.equal(ui.field('reset-position').classList.contains('hidden'), true);
     const inputs = ui.field('position-inputs').children;
     const pageWidth = inputs.find((input) => input.name === 'positions[0][specimen_positions][2][width]');
     const pageHeight = inputs.find((input) => input.name === 'positions[0][specimen_positions][3][height]');
