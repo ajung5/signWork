@@ -21,7 +21,7 @@ function bsreProvider(array $overrides = []): BsreSigningProvider
         'basic_username' => 'basic-user',
         'basic_password' => 'basic-secret',
         'bearer_token' => 'bearer-secret',
-        'tampilan' => 'visible',
+        'tampilan' => 'invisible',
         'image' => false,
         'x_axis' => 3,
         'y_axis' => 4,
@@ -41,7 +41,7 @@ test('BSrE provider stores a PDF returned directly by the sign endpoint', functi
             && str_contains($body, 'name="passphrase"')
             && str_contains($body, 'do-not-log')
             && str_contains($body, 'name="tampilan"')
-            && str_contains($body, 'invisible')
+            && str_contains($body, 'visible')
             && str_contains($body, 'name="image"')
             && str_contains($body, 'false')
             && str_contains($body, 'name="linkQR"')
@@ -59,7 +59,7 @@ test('BSrE provider stores a PDF returned directly by the sign endpoint', functi
         );
     });
 
-    $result = bsreProvider()->sign(
+    $result = bsreProvider(['tampilan' => 'visible'])->sign(
         'input.pdf',
         'output.pdf',
         'local-transaction',
