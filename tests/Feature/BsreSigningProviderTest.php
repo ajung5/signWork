@@ -21,8 +21,12 @@ function bsreProvider(array $overrides = []): BsreSigningProvider
         'basic_username' => 'basic-user',
         'basic_password' => 'basic-secret',
         'bearer_token' => 'bearer-secret',
-        'tampilan' => 'invisible',
+        'tampilan' => 'visible',
         'image' => false,
+        'x_axis' => 3,
+        'y_axis' => 4,
+        'width' => 80,
+        'height' => 80,
         'timeout' => 5,
     ], $overrides)));
 }
@@ -40,6 +44,12 @@ test('BSrE provider stores a PDF returned directly by the sign endpoint', functi
             && str_contains($body, 'invisible')
             && str_contains($body, 'name="image"')
             && str_contains($body, 'false')
+            && str_contains($body, 'name="linkQR"')
+            && str_contains($body, 'https://signwork.example/verify/cycle-123')
+            && str_contains($body, 'name="xAxis"')
+            && str_contains($body, 'name="yAxis"')
+            && str_contains($body, 'name="width"')
+            && str_contains($body, 'name="height"')
             && $request->hasHeader('Authorization');
 
         return Http::response(
@@ -54,7 +64,11 @@ test('BSrE provider stores a PDF returned directly by the sign endpoint', functi
         'output.pdf',
         'local-transaction',
         'Signer One',
-        ['nik' => '1234567890123456', 'passphrase' => 'do-not-log']
+        [
+            'nik' => '1234567890123456',
+            'passphrase' => 'do-not-log',
+            'verification_url' => 'https://signwork.example/verify/cycle-123',
+        ]
     );
 
     Storage::disk('local')->assertExists('output.pdf');
@@ -75,12 +89,50 @@ test('BSrE provider downloads the signed PDF when sign returns a document id', f
         'output.pdf',
         'local-transaction',
         'Signer One',
-        ['nik' => '1234567890123456', 'passphrase' => 'do-not-log']
+        [
+            'nik' => '1234567890123456',
+            'passphrase' => 'do-not-log',
+            'verification_url' => 'https://signwork.example/verify/cycle-456',
+        ]
     );
 
     expect(Storage::disk('local')->get('output.pdf'))->toBe('%PDF-1.7 downloaded')
         ->and($result->providerTransactionId)->toBe('remote-456');
     Http::assertSent(fn (Request $request): bool => $request->url() === 'http://192.168.18.26/api/sign/download/remote-456');
+});
+
+test('BSrE invisible signing does not send visual QR parameters', function () {
+    Http::fake(function (Request $request) {
+        $body = $request->body();
+
+        expect($body)
+            ->toContain('name="nik"')
+            ->toContain('name="passphrase"')
+            ->toContain('name="tampilan"')
+            ->toContain('invisible')
+            ->not->toContain('name="image"')
+            ->not->toContain('name="linkQR"')
+            ->not->toContain('name="xAxis"')
+            ->not->toContain('name="yAxis"')
+            ->not->toContain('name="width"')
+            ->not->toContain('name="height"');
+
+        return Http::response('%PDF-1.7 signed', 200, ['Content-Type' => 'application/pdf']);
+    });
+
+    $result = bsreProvider(['tampilan' => 'invisible'])->sign(
+        'input.pdf',
+        'output.pdf',
+        'local-transaction',
+        'Signer One',
+        [
+            'nik' => '1234567890123456',
+            'passphrase' => 'do-not-log',
+            'verification_url' => 'https://signwork.example/verify/cycle-invisible',
+        ]
+    );
+
+    expect($result->providerTransactionId)->toBe('local-transaction');
 });
 
 test('BSrE provider fails clearly when credentials are not configured', function () {

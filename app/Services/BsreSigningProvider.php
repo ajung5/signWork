@@ -13,6 +13,7 @@ class BsreSigningProvider implements SigningProvider
     {
         $nik = trim((string) ($context['nik'] ?? ''));
         $passphrase = (string) ($context['passphrase'] ?? '');
+        $linkQr = trim((string) ($context['verification_url'] ?? ''));
         if ($nik === '' || $passphrase === '') {
             throw ValidationException::withMessages(['provider' => 'NIK dan passphrase BSrE wajib tersedia.']);
         }
@@ -21,6 +22,7 @@ class BsreSigningProvider implements SigningProvider
             path: Storage::disk('local')->path($input),
             nik: $nik,
             passphrase: $passphrase,
+            linkQr: $linkQr,
         );
         $pdf = $response->pdf;
         if ($pdf === null && $response->documentId !== null) {

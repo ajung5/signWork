@@ -573,12 +573,12 @@ class DocumentWorkflow
                 $context = [
                     'nik' => $step->user?->nik,
                     'passphrase' => $passphrase,
+                    'verification_url' => rtrim((string) config('signwork.verification_base_url'), '/').
+                        route('verification.show', $cycle->public_id, false),
                 ];
                 if ($cycle->qr_mode === 'per_signer') {
                     $context += [
                         'step' => $step->toArray(),
-                        'verification_url' => rtrim((string) config('signwork.verification_base_url'), '/').
-                            route('verification.show', $cycle->public_id, false),
                     ];
                 }
                 $result = $this->provider->sign($cycle->current_path, $output, $transaction, $step->name_snapshot, $context);

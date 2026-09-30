@@ -20,7 +20,11 @@ return [
         'response_type' => env('SIGNWORK_BSRE_RESPONSE_TYPE'),
         'tampilan' => env('SIGNWORK_BSRE_TAMPILAN', 'invisible'),
         'image' => filter_var(env('SIGNWORK_BSRE_IMAGE', 'false'), FILTER_VALIDATE_BOOLEAN),
-        'link_qr' => env('SIGNWORK_BSRE_LINK_QR'),
+        // linkQR dibentuk per dokumen pada saat signing, bukan dari .env.
+        'x_axis' => (int) env('SIGNWORK_BSRE_X_AXIS', 3),
+        'y_axis' => (int) env('SIGNWORK_BSRE_Y_AXIS', 4),
+        'width' => (int) env('SIGNWORK_BSRE_WIDTH', 80),
+        'height' => (int) env('SIGNWORK_BSRE_HEIGHT', 80),
         'timeout' => (int) env('SIGNWORK_BSRE_TIMEOUT', 120),
     ],
 ];
