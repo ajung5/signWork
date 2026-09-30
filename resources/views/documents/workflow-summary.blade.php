@@ -132,19 +132,25 @@
             <form action="{{ route('documents.sign', $document) }}" method="POST"
                 class="space-y-3 rounded-lg border border-amber-200 p-4" data-single-submit>
                 @csrf <input type="hidden" name="cycle_token" value="{{ $cycle->public_id }}">
-                <div class="rounded-lg bg-amber-50 p-3 text-sm">Gunakan passphrase demo <code
-                        class="font-semibold">{{ config('signwork.mock_passphrase') }}</code>. Jangan masukkan passphrase
-                    BSrE asli.</div>
-                <label class="block text-sm font-medium" for="sign-passphrase">Passphrase simulasi</label>
+                @if (config('signwork.provider') === 'mock')
+                    <div class="rounded-lg bg-amber-50 p-3 text-sm">Gunakan passphrase demo <code
+                            class="font-semibold">{{ config('signwork.mock_passphrase') }}</code>. Jangan masukkan passphrase
+                        BSrE asli.</div>
+                @else
+                    <div class="rounded-lg bg-blue-50 p-3 text-sm text-blue-900">Dokumen akan ditandatangani melalui eSign
+                        Client BSrE development. Passphrase hanya dikirim ke BSrE dan tidak disimpan.</div>
+                @endif
+                <label class="block text-sm font-medium" for="sign-passphrase">Passphrase {{ config('signwork.provider') === 'mock' ? 'simulasi' : 'BSrE' }}</label>
                 <input id="sign-passphrase" name="passphrase" type="password" required maxlength="200" autocomplete="off"
                     class="w-full rounded-lg border border-slate-300 p-3" aria-describedby="passphrase-help">
                 <p id="passphrase-help" class="text-xs text-slate-600">Diverifikasi saat tombol ditekan. Jika salah, proses
                     tidak dilanjutkan. Nilainya tidak disimpan atau ditampilkan kembali.</p>
-                <label class="flex gap-2 text-sm"><input type="checkbox" name="mock_acknowledged" value="1"
-                        required>Saya memahami bahwa aksi ini hanya simulasi signing dan tidak menggunakan sertifikat
-                    BSrE.</label>
-                <button class="rounded-lg bg-violet-700 px-4 py-2 font-semibold text-white">Jalankan simulasi tanda
-                    tangan</button>
+                @if (config('signwork.provider') === 'mock')
+                    <label class="flex gap-2 text-sm"><input type="checkbox" name="mock_acknowledged" value="1"
+                            required>Saya memahami bahwa aksi ini hanya simulasi signing dan tidak menggunakan sertifikat
+                        BSrE.</label>
+                @endif
+                <button class="rounded-lg bg-violet-700 px-4 py-2 font-semibold text-white">Jalankan tanda tangan</button>
             </form>
         @endcan
         @if ($cycle->qr_mode === 'legacy_all')

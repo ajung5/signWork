@@ -4,7 +4,11 @@
 <div class="mx-auto max-w-6xl space-y-6">
     <a href="{{ route('documents.show', $document) }}" class="text-sm text-blue-700">← Kembali ke dokumen</a>
     <h1 class="text-2xl font-semibold">PDF & Alur · {{ $document->title }}</h1>
-    <p class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Mode simulasi. Jangan memasukkan passphrase BSrE. Siapkan ruang kosong untuk QR. Pilih spesimen berbingkai, QR 2 × 2 cm, atau QR 3 × 3 cm. Ukuran dihitung otomatis.</p>
+    @if (config('signwork.provider') === 'mock')
+        <p class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Mode simulasi. Jangan memasukkan passphrase BSrE. Siapkan ruang kosong untuk QR. Pilih spesimen berbingkai, QR 2 × 2 cm, atau QR 3 × 3 cm. Ukuran dihitung otomatis.</p>
+    @else
+        <p class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">Mode eSign Client BSrE development. Passphrase BSrE hanya digunakan saat signing dan tidak disimpan. Siapkan ruang untuk spesimen QR pada dokumen.</p>
+    @endif
     <form action="{{ route('documents.pdf.store', $document) }}" method="POST" enctype="multipart/form-data" class="space-y-5 rounded-xl border border-slate-200 bg-white p-6">
         @csrf
         <h2 class="text-lg font-semibold">1. Dokumen sumber dan urutan peserta</h2>

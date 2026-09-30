@@ -258,26 +258,24 @@ class DocumentPdfController extends Controller
     public function sign(Request $request, Document $document, DocumentWorkflow $workflow): RedirectResponse
     {
         Gate::authorize('sign', $document);
+        $isMock = config('signwork.provider') === 'mock';
         $data = $request->validate([
             'cycle_token' => ['required', 'uuid'],
-            'mock_acknowledged' => ['accepted'],
+            'mock_acknowledged' => $isMock ? ['accepted'] : ['nullable'],
             'passphrase' => ['required', 'string', 'max:200'],
         ]);
-        if (config('signwork.provider') !== 'mock') {
-            throw ValidationException::withMessages(['provider' => 'Provider BSrE belum tersedia.']);
-        }
-        if (! hash_equals((string) config('signwork.mock_passphrase'), $data['passphrase'])) {
-            return back()
-                ->withErrors([
-                    'passphrase' => 'Passphrase simulasi salah. Dokumen belum ditandatangani.',
-                ])
+        if ($isMock && ! hash_equals((string) config('signwork.mock_passphrase'), $data['passphrase'])) {
+            return back()->withErrors(['passphrase' => 'Passphrase simulasi salah. Dokumen belum ditandatangani.'])
                 ->withInput($request->except('passphrase'));
         }
-        $workflow->sign($document, $request->user(), $data['cycle_token']);
+        try {
+            $workflow->sign($document, $request->user(), $data['cycle_token'], $data['passphrase']);
+        } catch (ValidationException $exception) {
+            return back()->withErrors($exception->errors())->withInput($request->except('passphrase'));
+        }
 
-        return to_route('documents.show', $document)->with(
-            'success',
-            'Passphrase simulasi berhasil diverifikasi. Tahap tanda tangan berhasil. Ini bukan TTE BSrE.'
-        );
+        return to_route('documents.show', $document)->with('success', $isMock
+            ? 'Passphrase simulasi berhasil diverifikasi. Tahap tanda tangan berhasil. Ini bukan TTE BSrE.'
+            : 'Passphrase BSrE berhasil diverifikasi. Tahap tanda tangan berhasil.');
     }
 }
