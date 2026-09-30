@@ -151,7 +151,7 @@ class SignWorkDemoSeeder extends Seeder
                     ],
                 );
 
-                if ($status !== DocumentStatus::Draft && $document->workflow_cycle === 0) {
+                if ($status !== DocumentStatus::Draft && (int) $document->workflow_cycle === 0) {
                     $this->seedCycle($document, $status, $approvers, $signers, $contents);
                 }
 
