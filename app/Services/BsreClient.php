@@ -60,9 +60,24 @@ class BsreClient
                 $fields['jenis_response'] = (string) $this->config['response_type'];
             }
 
+            $signUrl = $this->url((string) ($this->config['sign_path'] ?? '/api/sign/pdf'));
+
+                Log::info('BSrE signing request shape', [
+                    'url' => $signUrl,
+                    'tampilan' => $tampilan,
+                    'field_names' => array_keys($fields),
+                    'file_name' => basename($path),
+                    'file_size' => is_file($path) ? filesize($path) : null,
+                    'file_mime' => function_exists('mime_content_type')
+                        ? @mime_content_type($path)
+                        : null,
+                    'basic_auth' => $this->hasBasicAuth(),
+                    'bearer_auth' => filled($this->config['bearer_token'] ?? null),
+                ]);
+
             $response = $this->request()
                 ->attach('file', $file, basename($path))
-                ->post($this->url((string) ($this->config['sign_path'] ?? '/api/sign/pdf')), $fields);
+                ->post($signUrl, $fields);
 
             return $this->parseResponse($response, null);
         } catch (RequestException $exception) {
