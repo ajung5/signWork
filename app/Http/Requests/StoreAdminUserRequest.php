@@ -32,6 +32,11 @@ class StoreAdminUserRequest extends FormRequest
                 'max:255',
                 'unique:users,email',
             ],
+            'nik' => [
+                'nullable',
+                'digits:16',
+                Rule::unique('users', 'nik'),
+            ],
             'password' => [
                 'required',
                 'string',
@@ -52,6 +57,8 @@ class StoreAdminUserRequest extends FormRequest
             'email.required' => 'Email user wajib diisi.',
             'email.email' => 'Format email tidak valid.',
             'email.unique' => 'Email sudah digunakan.',
+            'nik.digits' => 'NIK harus terdiri dari 16 digit.',
+            'nik.unique' => 'NIK sudah digunakan oleh user lain.',
             'password.required' => 'Password wajib diisi.',
             'password.min' => 'Password minimal 8 karakter.',
             'password.confirmed' => 'Konfirmasi password tidak sesuai.',

@@ -550,22 +550,17 @@ class DocumentWorkflow
         }
     }
 
-    public function sign(Document $document, User $actor, string $token): void
+    public function sign(Document $document, User $actor, string $token, ?string $passphrase = null): void
     {
         $outputs = [];
         try {
-            DB::transaction(function () use ($document, $actor, $token, &$outputs): void {
+            DB::transaction(function () use ($document, $actor, $token, $passphrase, &$outputs): void {
                 $locked = Document::query()->lockForUpdate()->findOrFail($document->id);
                 Gate::forUser($actor)->authorize('sign', $locked);
                 $cycle = $this->cycle($locked, $token);
                 $step = $cycle->signatures()->where('status', 'pending')->firstOrFail();
                 abort_unless($step->user_id === $actor->id, 403);
                 abort_if($cycle->approvals()->where('status', '!=', 'approved')->exists(), 409);
-                if (config('signwork.provider') !== 'mock') {
-                    throw ValidationException::withMessages([
-                        'provider' => 'Hanya provider mock tersedia. Integrasi BSrE belum aktif.',
-                    ]);
-                }
                 $locked->update(['status' => DocumentStatus::Signing]);
                 if (! $cycle->prepared_path) {
                     $outputs[] = $this->prepare($locked, $cycle);
@@ -575,15 +570,18 @@ class DocumentWorkflow
                 $output = 'signwork/'.$locked->uuid.'/'.Str::uuid().'.pdf';
                 $outputs[] = $output;
                 $transaction = (string) Str::uuid();
-                $context =
-                    $cycle->qr_mode === 'per_signer'
-                        ? [
-                            'step' => $step->toArray(),
-                            'verification_url' => rtrim((string) config('signwork.verification_base_url'), '/').
-                                route('verification.show', $cycle->public_id, false),
-                        ]
-                        : [];
-                $this->provider->sign($cycle->current_path, $output, $transaction, $step->name_snapshot, $context);
+                $context = [
+                    'nik' => $step->user?->nik,
+                    'passphrase' => $passphrase,
+                    'verification_url' => rtrim((string) config('signwork.verification_base_url'), '/').
+                        route('verification.show', $cycle->public_id, false),
+                ];
+                if ($cycle->qr_mode === 'per_signer') {
+                    $context += [
+                        'step' => $step->toArray(),
+                    ];
+                }
+                $result = $this->provider->sign($cycle->current_path, $output, $transaction, $step->name_snapshot, $context);
                 $hash = $this->pdf->hash($output);
                 $step->update([
                     'status' => 'signed',
@@ -591,7 +589,7 @@ class DocumentWorkflow
                     'input_sha256' => $cycle->current_sha256,
                     'output_sha256' => $hash,
                     'output_path' => $output,
-                    'provider_transaction_id' => $transaction,
+                    'provider_transaction_id' => $result->providerTransactionId,
                 ]);
                 $cycle->update(['current_path' => $output, 'current_sha256' => $hash]);
                 if ($next = $cycle->signatures()->where('status', 'pending')->first()) {

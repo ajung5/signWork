@@ -37,11 +37,11 @@ function specimenFixture(): array
 
 test('admin can store and update specimen profile fields', function () {
     $admin = User::factory()->admin()->create();
-    $data = ['name' => 'Test, S.Kom', 'email' => 'specimen@example.test', 'password' => 'password123', 'password_confirmation' => 'password123',
+    $data = ['name' => 'Test, S.Kom', 'email' => 'specimen@example.test', 'password' => 'password123', 'password_confirmation' => 'password123', 'nik' => '3200000000000002',
         'jabatan' => 'Analis', 'unit_kerja' => 'Diskominfo', 'pangkat' => 'Penata', 'golongan' => 'III/c'];
     $this->actingAs($admin)->post(route('admin.users.store'), $data)->assertSessionHasNoErrors();
     $user = User::where('email', $data['email'])->firstOrFail();
-    expect($user->only(['jabatan', 'unit_kerja', 'pangkat', 'golongan']))->toBe(collect($data)->only(['jabatan', 'unit_kerja', 'pangkat', 'golongan'])->all());
+    expect($user->only(['nik', 'jabatan', 'unit_kerja', 'pangkat', 'golongan']))->toBe(collect($data)->only(['nik', 'jabatan', 'unit_kerja', 'pangkat', 'golongan'])->all());
     $this->put(route('admin.users.update', $user), [...$data, 'jabatan' => 'Kepala Bidang'])->assertSessionHasNoErrors();
     expect($user->fresh()->jabatan)->toBe('Kepala Bidang');
     $this->actingAs(User::factory()->create())->put(route('admin.users.update', $user), $data)->assertForbidden();

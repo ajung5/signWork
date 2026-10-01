@@ -78,7 +78,15 @@ def _fallback_placeholder_rects(page, token):
 
 
 def _placeholder_tokens(page):
-    tokens = set(PLACEHOLDER_PATTERN.findall(page.get_text()))
+    page_text = page.get_text()
+    tokens = set(PLACEHOLDER_PATTERN.findall(page_text))
+
+    # Most PDFs do not contain placeholders. Avoid the second, more
+    # expensive word-level pass for those documents. The fallback is still
+    # needed when a placeholder is split across PDF text spans.
+    if '${' not in page_text:
+        return tokens
+
     for words in _word_lines(page):
         joined = ''.join(re.sub(r'\s+', '', text) for _, _, text in words)
         tokens.update(PLACEHOLDER_PATTERN.findall(joined))

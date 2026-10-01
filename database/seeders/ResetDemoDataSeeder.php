@@ -71,9 +71,29 @@ class ResetDemoDataSeeder extends Seeder
                 $users = collect();
                 $password = Hash::make('SignWorkDemo!2026');
                 $names = ['Andi Pratama', 'Siti Rahmawati', 'Dedi Kurniawan', 'Rina Marlina', 'Fajar Nugraha', 'Nabila Putri', 'Rizky Hidayat', 'Budi Santoso', 'Maya Lestari', 'Arief Maulana'];
+                $profiles = [
+                    ['jabatan' => 'Pranata Komputer Ahli Pertama', 'unit_kerja' => 'Dinas Komunikasi dan Informatika Kabupaten Subang', 'pangkat' => 'Penata Muda Tk. I', 'golongan' => 'III/b'],
+                    ['jabatan' => 'Analis Keuangan Pusat dan Daerah Ahli Muda', 'unit_kerja' => 'Badan Pendapatan Daerah Kabupaten Subang', 'pangkat' => 'Penata', 'golongan' => 'III/c'],
+                    ['jabatan' => 'Administrator Kesehatan Ahli Muda', 'unit_kerja' => 'Dinas Kesehatan Kabupaten Subang', 'pangkat' => 'Penata Tk. I', 'golongan' => 'III/d'],
+                    ['jabatan' => 'Pranata Komputer Ahli Muda', 'unit_kerja' => 'Dinas Kependudukan dan Pencatatan Sipil Kabupaten Subang', 'pangkat' => 'Penata Tk. I', 'golongan' => 'III/d'],
+                    ['jabatan' => 'Penata Perizinan Ahli Pertama', 'unit_kerja' => 'Dinas Penanaman Modal dan Pelayanan Terpadu Satu Pintu Kabupaten Subang', 'pangkat' => 'Penata Muda', 'golongan' => 'III/a'],
+                    ['jabatan' => 'Perencana Ahli Madya', 'unit_kerja' => 'Badan Perencanaan Pembangunan, Penelitian dan Pengembangan Daerah Kabupaten Subang', 'pangkat' => 'Pembina', 'golongan' => 'IV/a'],
+                    ['jabatan' => 'Analis Sumber Daya Manusia Aparatur Ahli Muda', 'unit_kerja' => 'Badan Kepegawaian dan Pengembangan Sumber Daya Manusia Kabupaten Subang', 'pangkat' => 'Penata Tk. I', 'golongan' => 'III/d'],
+                    ['jabatan' => 'Auditor Ahli Madya', 'unit_kerja' => 'Inspektorat Daerah Kabupaten Subang', 'pangkat' => 'Pembina', 'golongan' => 'IV/a'],
+                    ['jabatan' => 'Pengembang Teknologi Pembelajaran Ahli Pertama', 'unit_kerja' => 'Dinas Pendidikan dan Kebudayaan Kabupaten Subang', 'pangkat' => 'Penata Muda Tk. I', 'golongan' => 'III/b'],
+                    ['jabatan' => 'Perencana Ahli Muda', 'unit_kerja' => 'Dinas Pekerjaan Umum dan Penataan Ruang Kabupaten Subang', 'pangkat' => 'Penata', 'golongan' => 'III/c'],
+                ];
                 foreach ($names as $index => $name) {
                     $user = new User;
-                    $user->forceFill(['name' => $name, 'email' => sprintf('user%02d@demo.signwork.test', $index + 1), 'password' => $password, 'role' => UserRole::User, 'email_verified_at' => now()])->save();
+                    $user->forceFill([
+                        'name' => $name,
+                        'email' => sprintf('user%02d@demo.signwork.test', $index + 1),
+                        'nik' => sprintf('999700000000%04d', $index + 1),
+                        ...$profiles[$index % count($profiles)],
+                        'password' => $password,
+                        'role' => UserRole::User,
+                        'email_verified_at' => now(),
+                    ])->save();
                     $users->push($user);
                 }
                 foreach ($users as $index => $owner) {

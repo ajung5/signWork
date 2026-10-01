@@ -36,7 +36,10 @@ class RecordActivity
             $event = $request->route()->getName();
             $message = $failed ? 'Permintaan ditolak atau gagal. Periksa status respons dan validasi.' : 'Permintaan berhasil diproses.';
             if ($event === 'documents.sign') {
-                $message = $failed ? (in_array('passphrase', $errors) ? 'Passphrase simulasi salah atau belum diisi.' : 'Signing gagal; tahap belum diselesaikan.') : 'Passphrase simulasi valid; signing berhasil.';
+                $label = config('signwork.provider') === 'mock' ? 'Passphrase simulasi' : 'Passphrase BSrE';
+                $message = $failed
+                    ? (in_array('passphrase', $errors) ? $label.' salah atau belum diisi.' : 'Signing gagal; tahap belum diselesaikan.')
+                    : $label.' valid; signing berhasil.';
             } elseif ($event === 'documents.send' && ! $failed) {
                 $message = 'Dokumen final dikirim ke penerima.';
             } elseif ($event === 'documents.pdf.store' && $failed) {
