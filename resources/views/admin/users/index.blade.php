@@ -52,8 +52,12 @@
                                 Email
                             </th>
 
-                            <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">Jabatan / Unit kerja</th>
-                            <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">Pangkat / Golongan</th>
+                            <th
+                                class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
+                                Jabatan / Unit kerja</th>
+                            <th
+                                class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
+                                Pangkat / Golongan</th>
 
                             <th
                                 class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
@@ -93,14 +97,16 @@
                                     <p class="mt-1 text-xs text-slate-500">{{ $user->unit_kerja ?: '—' }}</p>
                                 </td>
                                 <td class="px-5 py-4 text-sm text-slate-600 sm:px-6">
-                                    {{ $user->pangkat ?: '—' }} @if ($user->golongan)({{ $user->golongan }})@endif
+                                    {{ $user->pangkat ?: '—' }} @if ($user->golongan)
+                                        ({{ $user->golongan }})
+                                    @endif
                                 </td>
 
                                 <td class="px-5 py-4 sm:px-6">
                                     <span @class([
                                         'inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold',
                                         'border-indigo-200 bg-indigo-50 text-indigo-700' => $user->isAdmin(),
-                                        'border-slate-200 bg-slate-50 text-slate-700' => !$user->isAdmin()
+                                        'border-slate-200 bg-slate-50 text-slate-700' => !$user->isAdmin(),
                                     ])>
                                         {{ $user->role->label() }}
                                     </span>

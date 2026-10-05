@@ -46,8 +46,7 @@
     </div>
 
     @if ($taskDocuments->isNotEmpty())
-        <section class="mt-6 rounded-xl border border-blue-200 bg-blue-50/70 p-5 shadow-sm sm:p-6"
-            data-dashboard-tasks>
+        <section class="mt-6 rounded-xl border border-blue-200 bg-blue-50/70 p-5 shadow-sm sm:p-6" data-dashboard-tasks>
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-wide text-blue-700">
@@ -224,26 +223,26 @@
                             'label' => 'Draft',
                             'count' => $draftDocuments,
                             'percentage' => $distribution['draft'],
-                            'bar' => 'bg-slate-400'
+                            'bar' => 'bg-slate-400',
                         ],
                         [
                             'label' => 'Diajukan',
                             'count' => $submittedDocuments,
                             'percentage' => $distribution['submitted'],
-                            'bar' => 'bg-blue-500'
+                            'bar' => 'bg-blue-500',
                         ],
                         [
                             'label' => 'Menunggu Verifikasi',
                             'count' => $waitingApprovalDocuments,
                             'percentage' => $distribution['waiting'],
-                            'bar' => 'bg-amber-500'
+                            'bar' => 'bg-amber-500',
                         ],
                         [
                             'label' => 'Diproses / Selesai',
                             'count' => $processedDocuments,
                             'percentage' => $distribution['processed'],
-                            'bar' => 'bg-emerald-500'
-                        ]
+                            'bar' => 'bg-emerald-500',
+                        ],
                     ];
                 @endphp
 

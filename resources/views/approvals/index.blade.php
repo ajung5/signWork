@@ -15,7 +15,8 @@
 
             <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
                 Hanya dokumen berstatus Menunggu Verifikasi yang ditampilkan.
-                Setelah Anda memilih Setuju atau Tolak, dokumen otomatis keluar dari inbox ini dan keputusan tidak dapat dijalankan ulang.
+                Setelah Anda memilih Setuju atau Tolak, dokumen otomatis keluar dari inbox ini dan keputusan tidak dapat
+                dijalankan ulang.
             </p>
         </div>
 
@@ -43,10 +44,8 @@
                         @forelse ($documents as $document)
                             <tr class="transition hover:bg-amber-50/40">
                                 <td class="px-6 py-4">
-                                    <a
-                                        href="{{ route('documents.show', $document) }}"
-                                        class="text-sm font-semibold text-slate-900 hover:text-blue-700"
-                                    >
+                                    <a href="{{ route('documents.show', $document) }}"
+                                        class="text-sm font-semibold text-slate-900 hover:text-blue-700">
                                         {{ $document->title }}
                                     </a>
 
@@ -64,20 +63,15 @@
                                 </td>
 
                                 <td class="px-6 py-4 text-right">
-                                    <a
-                                        href="{{ route('documents.show', $document) }}"
-                                        class="inline-flex rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100"
-                                    >
+                                    <a href="{{ route('documents.show', $document) }}"
+                                        class="inline-flex rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100">
                                         Review
                                     </a>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td
-                                    colspan="4"
-                                    class="px-6 py-14 text-center"
-                                >
+                                <td colspan="4" class="px-6 py-14 text-center">
                                     <p class="text-sm font-semibold text-slate-700">
                                         Tidak ada dokumen yang menunggu verifikasi Anda.
                                     </p>

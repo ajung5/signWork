@@ -30,13 +30,20 @@
             $previewVersion = $cycle->status === 'signed' ? 'final' : ($cycle->current_path ? 'current' : 'original');
             $previewLabel =
                 $previewVersion === 'final'
-                    ? 'Preview PDF final'
+                    ? 'Lihat dokumen final'
                     : ($previewVersion === 'current'
                         ? 'Preview PDF tahap berjalan'
                         : 'Preview dokumen sumber');
         @endphp
-        <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Provider: MOCK — simulasi, bukan TTE BSrE yang sah.
-            QR membandingkan hash file; bukan validasi sertifikat elektronik.</p>
+        @if (config('signwork.provider') === 'mock')
+            <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Provider: MOCK — simulasi, bukan TTE BSrE yang
+                sah.
+                QR membandingkan hash file; bukan validasi sertifikat elektronik.</p>
+        @else
+            <p class="rounded-lg bg-sky-50 p-3 text-sm text-sky-900">Provider: eSign Client BSrE development. Dokumen
+                final
+                menampilkan spesimen hitam setelah proses TTE BSrE berhasil.</p>
+        @endif
         @if (!$document->isDraft() || !$cycle->positions_confirmed_at)
             <div class="rounded-xl border border-blue-200 bg-blue-50 p-4">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -48,10 +55,6 @@
                     <div class="flex shrink-0 flex-wrap items-center gap-2 sm:flex-nowrap">
                         <a href="{{ route('documents.pdf.viewer', [$document, 'version' => $previewVersion]) }}"
                             class="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">{{ $previewLabel }}</a>
-                        @if ($document->isSigned())
-                            <a href="{{ route('verification.show', $cycle->public_id) }}"
-                                class="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-violet-300 bg-violet-700 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-800">Buka verifikasi PDF</a>
-                        @endif
                     </div>
                 </div>
             </div>
@@ -92,7 +95,7 @@
                                             'selected_pages' => 'Halaman ' .
                                                 implode(', ', array_map('intval', $step->specimen_pages ?? [])),
                                             'selected_page' => 'Halaman ' . (int) ($step->page ?? 0),
-                                            default => 'Belum ditentukan'
+                                            default => 'Belum ditentukan',
                                         };
                                     @endphp
                                     <div
@@ -134,23 +137,39 @@
                 @csrf <input type="hidden" name="cycle_token" value="{{ $cycle->public_id }}">
                 @if (config('signwork.provider') === 'mock')
                     <div class="rounded-lg bg-amber-50 p-3 text-sm">Gunakan passphrase demo <code
-                            class="font-semibold">{{ config('signwork.mock_passphrase') }}</code>. Jangan masukkan passphrase
+                            class="font-semibold">{{ config('signwork.mock_passphrase') }}</code>. Jangan masukkan
+                        passphrase
                         BSrE asli.</div>
+                    <label class="block text-sm font-medium" for="sign-passphrase">Passphrase simulasi</label>
                 @else
-                    <div class="rounded-lg bg-blue-50 p-3 text-sm text-blue-900">Dokumen akan ditandatangani melalui eSign
-                        Client BSrE development. Passphrase hanya dikirim ke BSrE dan tidak disimpan.</div>
+                    <div class="rounded-lg bg-sky-50 p-3 text-sm text-sky-900">Mode eSign Client BSrE development.
+                        Passphrase hanya dikirim ke BSrE saat proses tanda tangan dan tidak disimpan.</div>
+                    <p class="text-sm">NIK signer: <span
+                            class="font-semibold">{{ auth()->user()->nik ?: 'Belum diisi' }}</span></p>
+                    @if (!auth()->user()->nik)
+                        <p class="text-sm text-red-700">NIK profil signer belum diisi. Isi NIK sebelum menggunakan BSrE.</p>
+                    @endif
+                    <label class="block text-sm font-medium" for="sign-passphrase">Passphrase BSrE</label>
                 @endif
-                <label class="block text-sm font-medium" for="sign-passphrase">Passphrase {{ config('signwork.provider') === 'mock' ? 'simulasi' : 'BSrE' }}</label>
                 <input id="sign-passphrase" name="passphrase" type="password" required maxlength="200" autocomplete="off"
                     class="w-full rounded-lg border border-slate-300 p-3" aria-describedby="passphrase-help">
                 <p id="passphrase-help" class="text-xs text-slate-600">Diverifikasi saat tombol ditekan. Jika salah, proses
                     tidak dilanjutkan. Nilainya tidak disimpan atau ditampilkan kembali.</p>
                 @if (config('signwork.provider') === 'mock')
                     <label class="flex gap-2 text-sm"><input type="checkbox" name="mock_acknowledged" value="1"
-                            required>Saya memahami bahwa aksi ini hanya simulasi signing dan tidak menggunakan sertifikat
+                            required @checked(old('mock_acknowledged'))>Saya memahami bahwa aksi ini hanya simulasi signing dan
+                        tidak menggunakan sertifikat
                         BSrE.</label>
                 @endif
-                <button class="rounded-lg bg-violet-700 px-4 py-2 font-semibold text-white">Jalankan tanda tangan</button>
+                @error('mock_acknowledged')
+                    <p class="text-sm text-red-700">{{ $message }}</p>
+                @enderror
+                @error('provider')
+                    <p class="text-sm text-red-700">{{ $message }}</p>
+                @enderror
+                <button class="rounded-lg bg-violet-700 px-4 py-2 font-semibold text-white">
+                    {{ config('signwork.provider') === 'mock' ? 'Jalankan simulasi tanda tangan' : 'Tanda Tangani dengan BSrE' }}
+                </button>
             </form>
         @endcan
         @if ($cycle->qr_mode === 'legacy_all')

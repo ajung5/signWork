@@ -90,6 +90,7 @@ class DocumentPdfController extends Controller
                 'steps' => $cycle->signatures->toArray(),
                 'verification_url' => $verificationUrl,
                 'specimen_version' => (int) $cycle->specimen_version,
+                'provider' => (string) config('signwork.provider', 'mock'),
             ]);
         } catch (\Throwable $error) {
             Storage::disk('local')->delete($path);
@@ -218,10 +219,14 @@ class DocumentPdfController extends Controller
         abort_unless($path && $hash, 404);
         $pdf->ensureHash($path, $hash);
 
+        $downloadName = $final
+            ? $this->signedPdfFilename($document, $cycle->source_name)
+            : 'SignWork-'.($version === 'original' ? 'original' : 'MOCK-'.$version).'.pdf';
+
         if ($request->boolean('inline')) {
             return response()->file($pdf->path($path), [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename=SignWork-preview.pdf',
+                'Content-Disposition' => 'inline; filename="'.($final ? $downloadName : 'SignWork-preview.pdf').'"',
                 'Cache-Control' => 'private, no-store',
                 'X-Content-Type-Options' => 'nosniff',
                 'X-Frame-Options' => 'SAMEORIGIN',
@@ -230,7 +235,7 @@ class DocumentPdfController extends Controller
 
         return response()->download(
             $pdf->path($path),
-            'SignWork-'.($version === 'original' ? 'original' : 'MOCK-'.$version).'.pdf',
+            $downloadName,
             ['Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']
         );
     }
@@ -258,24 +263,57 @@ class DocumentPdfController extends Controller
     public function sign(Request $request, Document $document, DocumentWorkflow $workflow): RedirectResponse
     {
         Gate::authorize('sign', $document);
-        $isMock = config('signwork.provider') === 'mock';
-        $data = $request->validate([
+        $provider = (string) config('signwork.provider');
+        $rules = [
             'cycle_token' => ['required', 'uuid'],
-            'mock_acknowledged' => $isMock ? ['accepted'] : ['nullable'],
             'passphrase' => ['required', 'string', 'max:200'],
-        ]);
-        if ($isMock && ! hash_equals((string) config('signwork.mock_passphrase'), $data['passphrase'])) {
-            return back()->withErrors(['passphrase' => 'Passphrase simulasi salah. Dokumen belum ditandatangani.'])
+        ];
+        $messages = [];
+        if ($provider === 'mock') {
+            $rules['mock_acknowledged'] = ['accepted'];
+            $messages['mock_acknowledged.accepted'] = 'Centang konfirmasi simulasi sebelum menjalankan tanda tangan.';
+        }
+        $data = $request->validate([
+            ...$rules,
+        ], $messages);
+        if (! in_array($provider, ['mock', 'bsre'], true)) {
+            throw ValidationException::withMessages(['provider' => 'Provider signing tidak dikenali.']);
+        }
+        if ($provider === 'bsre' && blank($request->user()->nik)) {
+            throw ValidationException::withMessages(['provider' => 'NIK profil signer belum diisi. Isi NIK sebelum menggunakan BSrE.']);
+        }
+        if ($provider === 'mock' && ! hash_equals((string) config('signwork.mock_passphrase'), $data['passphrase'])) {
+            return back()
+                ->withErrors([
+                    'passphrase' => 'Passphrase simulasi salah. Dokumen belum ditandatangani.',
+                ])
                 ->withInput($request->except('passphrase'));
         }
-        try {
-            $workflow->sign($document, $request->user(), $data['cycle_token'], $data['passphrase']);
-        } catch (ValidationException $exception) {
-            return back()->withErrors($exception->errors())->withInput($request->except('passphrase'));
+        $workflow->sign($document, $request->user(), $data['cycle_token'], $data['passphrase']);
+
+        return to_route('documents.show', $document)->with(
+            'success',
+            $provider === 'mock'
+                ? 'Passphrase simulasi berhasil diverifikasi. Tahap tanda tangan berhasil. Ini bukan TTE BSrE.'
+                : 'Passphrase BSrE berhasil diverifikasi. Dokumen berhasil ditandatangani melalui eSign Client BSrE.'
+        );
+    }
+
+    private function signedPdfFilename(Document $document, ?string $sourceName): string
+    {
+        $sourceName = trim((string) $sourceName);
+        $baseName = $sourceName !== ''
+            ? pathinfo($sourceName, PATHINFO_FILENAME)
+            : $document->title;
+
+        $baseName = Str::ascii($baseName);
+        $baseName = preg_replace('/[^A-Za-z0-9._ -]+/', '_', $baseName) ?: 'SignWork';
+        $baseName = trim($baseName, ' ._-');
+
+        if ($baseName === '') {
+            $baseName = 'SignWork';
         }
 
-        return to_route('documents.show', $document)->with('success', $isMock
-            ? 'Passphrase simulasi berhasil diverifikasi. Tahap tanda tangan berhasil. Ini bukan TTE BSrE.'
-            : 'Passphrase BSrE berhasil diverifikasi. Tahap tanda tangan berhasil.');
+        return mb_substr($baseName, 0, 180).'_sign.pdf';
     }
 }

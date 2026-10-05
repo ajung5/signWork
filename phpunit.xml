@@ -28,6 +28,7 @@
     -->
     <php>
         <env name="APP_ENV" value="testing" force="true"/>
+        <env name="SIGNWORK_PROVIDER" value="mock" force="true"/>
         <env name="APP_DEBUG" value="false" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
 

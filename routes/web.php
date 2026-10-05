@@ -103,6 +103,10 @@ Route::middleware(['auth', RecordActivity::class])->group(function (): void {
         'documents.revise'
     );
 
+    Route::post('/documents/{document}/revision', [DocumentController::class, 'uploadRevision'])->name(
+        'documents.revision.upload'
+    );
+
     Route::post('/documents/{document}/signer', [DocumentWorkflowController::class, 'assignSigner'])->name(
         'documents.assign-signer'
     );
@@ -146,6 +150,13 @@ Route::post('/verify/{publicId}', [VerificationController::class, 'compare'])
     ->whereUuid('publicId')
     ->middleware('throttle:20,1')
     ->name('verification.compare');
+
+Route::get('/validasi', [VerificationController::class, 'index'])
+    ->middleware('auth')
+    ->name('validation.index');
+Route::post('/validasi', [VerificationController::class, 'lookup'])
+    ->middleware(['auth', 'throttle:20,1'])
+    ->name('validation.lookup');
 
 Route::get('/admin/activity', [AdminActivityController::class, 'index'])
     ->middleware('auth')

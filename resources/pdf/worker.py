@@ -4,6 +4,7 @@ import json
 import math
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -253,10 +254,11 @@ def prepare(doc, payload):
     steps = payload['steps']
     validate_positions(doc, steps)
     replace_placeholders(doc, steps)
-    if payload.get('specimen_version') == 1:
+    if payload.get('specimen_version') == 1 and payload.get('provider', 'mock') == 'mock':
         specimens.footer(doc)
     draw_specimens(doc, steps, payload['verification_url'], color='red')
-    doc.set_metadata({**doc.metadata, 'subject': 'SignWork MOCK - bukan tanda tangan elektronik kriptografis'})
+    subject = 'SignWork MOCK - bukan tanda tangan elektronik kriptografis' if payload.get('provider', 'mock') == 'mock' else 'SignWork - dokumen ditandatangani melalui BSrE'
+    doc.set_metadata({**doc.metadata, 'subject': subject})
     doc.save(payload['output'], garbage=4, deflate=True)
     return {'ok': True}
 
@@ -289,6 +291,173 @@ def draw_signed_qr(doc, payload):
         page.insert_image(qr_rect, stream=buf.getvalue())
         page.insert_link({'kind': fitz.LINK_URI, 'from': qr_rect, 'uri': url})
 
+
+def prepare_signed_specimen(doc, payload):
+    draw_signed_qr(doc, payload)
+    doc.save(payload['output'], garbage=4, deflate=True)
+    return {'ok': True}
+
+
+def _openssl(args, data):
+    try:
+        result = subprocess.run(
+            ['openssl', *args],
+            input=data,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+            timeout=15,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        return None
+    return result.stdout
+
+
+def _certificate_details(pem):
+    output = _openssl([
+        'x509', '-noout', '-subject', '-issuer', '-startdate', '-enddate',
+        '-fingerprint', '-sha1', '-serial', '-text', '-nameopt', 'RFC2253',
+    ], pem)
+    if not output:
+        return None
+
+    text = output.decode('utf-8', errors='replace')
+
+    def value(pattern):
+        match = re.search(pattern, text, re.IGNORECASE | re.MULTILINE)
+        return match.group(1).strip() if match else None
+
+    fingerprint = value(r'^sha1 fingerprint\s*=\s*(.+)$')
+    return {
+        'fingerprint_sha1': fingerprint.upper() if fingerprint else None,
+        'issuer_dn': value(r'^issuer\s*=\s*(.+)$'),
+        'subject_dn': value(r'^subject\s*=\s*(.+)$'),
+        'not_before': value(r'^notbefore\s*=\s*(.+)$'),
+        'not_after': value(r'^notafter\s*=\s*(.+)$'),
+        'serial': value(r'^serial\s*=\s*(.+)$'),
+        'is_ca': bool(re.search(r'\bCA:TRUE\b', text, re.IGNORECASE)),
+    }
+
+
+def certificate_info(doc):
+    """Detect embedded PDF signatures and extract certificate metadata when available."""
+    signatures = []
+
+    for xref in range(1, doc.xref_length()):
+        obj = doc.xref_object(xref, compressed=False)
+
+        if '/ByteRange' not in obj or '/SubFilter' not in obj:
+            continue
+
+        signature = {
+            'fingerprint_sha1': None,
+            'issuer_dn': None,
+            'subject_dn': None,
+            'not_before': None,
+            'not_after': None,
+            'serial': None,
+            'certificate_available': False,
+            'xref': xref,
+        }
+
+        contents = re.search(
+            r'/Contents\s*<([0-9A-Fa-f\s]+)>',
+            obj,
+            re.DOTALL
+        )
+
+        # Signature tetap dianggap terdeteksi meskipun format
+        # Contents tidak dapat dibaca.
+        if not contents:
+            signatures.append(signature)
+            continue
+
+        try:
+            cms = bytes.fromhex(
+                re.sub(r'\s+', '', contents.group(1))
+            ).rstrip(b'\x00')
+        except ValueError:
+            signatures.append(signature)
+            continue
+
+        pem_bundle = _openssl([
+            'pkcs7',
+            '-inform',
+            'DER',
+            '-print_certs',
+            '-outform',
+            'PEM',
+        ], cms)
+
+        # TTE terdeteksi, tetapi metadata sertifikat belum dapat dibaca.
+        if not pem_bundle:
+            signatures.append(signature)
+            continue
+
+        certificates = re.findall(
+            rb'-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----',
+            pem_bundle,
+            re.DOTALL,
+        )
+
+        parsed = [
+            detail
+            for pem in certificates
+            if (detail := _certificate_details(pem))
+        ]
+
+        if not parsed:
+            signatures.append(signature)
+            continue
+
+        leaf = next(
+            (
+                detail
+                for detail in reversed(parsed)
+                if not detail['is_ca']
+            ),
+            parsed[-1],
+        )
+
+        leaf.pop('is_ca', None)
+        leaf['certificate_available'] = True
+        leaf['xref'] = xref
+
+        signatures.append(leaf)
+
+    return {
+        'signatures': signatures,
+    }
+    """Extract leaf certificate metadata from embedded PDF CMS signatures."""
+    signatures = []
+    for xref in range(1, doc.xref_length()):
+        obj = doc.xref_object(xref, compressed=False)
+        if '/ByteRange' not in obj or '/SubFilter' not in obj:
+            continue
+        contents = re.search(r'/Contents\s*<([0-9A-Fa-f\s]+)>', obj, re.DOTALL)
+        if not contents:
+            continue
+        try:
+            cms = bytes.fromhex(re.sub(r'\s+', '', contents.group(1))).rstrip(b'\x00')
+        except ValueError:
+            continue
+        pem_bundle = _openssl(['pkcs7', '-inform', 'DER', '-print_certs', '-outform', 'PEM'], cms)
+        if not pem_bundle:
+            continue
+        certificates = re.findall(
+            rb'-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----',
+            pem_bundle,
+            re.DOTALL,
+        )
+        parsed = [detail for pem in certificates if (detail := _certificate_details(pem))]
+        if not parsed:
+            continue
+        leaf = next((detail for detail in reversed(parsed) if not detail['is_ca']), parsed[-1])
+        leaf.pop('is_ca', None)
+        leaf['xref'] = xref
+        signatures.append(leaf)
+    return {'signatures': signatures}
+
 def run(payload):
     action = payload['action']
     if action == 'specimens':
@@ -302,6 +471,14 @@ def run(payload):
             annotation.set_info(title='MOCK - BUKAN TTE SAH')
             doc.saveIncr()
         return {'ok': True}
+    if action == 'certificate_info':
+        doc = fitz.open(payload['input'])
+        if not doc.is_pdf or doc.needs_pass:
+            raise InvalidPdf('PDF harus tidak terenkripsi.')
+        try:
+            return certificate_info(doc)
+        finally:
+            doc.close()
     with open_pdf(payload['input']) as doc:
         if action == 'scan':
             return scan(doc)
@@ -320,6 +497,8 @@ def run(payload):
             return {'ok': True}
         if action == 'prepare':
             return prepare(doc, payload)
+        if action == 'sign_specimen':
+            return prepare_signed_specimen(doc, payload)
         raise InvalidPdf('Operasi PDF tidak dikenali.')
 
 

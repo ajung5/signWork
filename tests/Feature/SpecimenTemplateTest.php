@@ -9,6 +9,7 @@ use App\Services\SpecimenTemplate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 uses(RefreshDatabase::class);
 
@@ -164,7 +165,7 @@ test('placeholder mode rejects a missing signer token instead of falling back to
         [$approver->id],
         $signers->pluck('id')->all(),
         new UploadedFile(base_path('tests/Fixtures/duplicate.pdf'), 'placeholder.pdf', 'application/pdf', null, true),
-    ))->toThrow(\Illuminate\Validation\ValidationException::class, 'Placeholder signer belum lengkap');
+    ))->toThrow(ValidationException::class, 'Placeholder signer belum lengkap');
 
     expect($doc->fresh()->currentCycle())->toBeNull();
 });

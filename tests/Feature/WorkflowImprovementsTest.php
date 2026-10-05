@@ -65,7 +65,7 @@ test('recipient receives final document only after owner or last signer sends it
     $this->actingAs($owner)->post(route('documents.send', $document), $payload)->assertForbidden();
     $workflow = app(DocumentWorkflow::class);
     foreach ($signers as $signer) {
-        $workflow->sign($document, $signer, $cycle->public_id);
+        $workflow->sign($document, $signer, $cycle->public_id, 'MOCK-SIGNWORK-2026');
     }
     $this->actingAs($recipient)->get(route('incoming-documents.index'))->assertDontSee($document->title);
     $this->actingAs($signers[0])->post(route('documents.send', $document), $payload)->assertForbidden();
@@ -85,7 +85,7 @@ test('preview is authorized and returns PDF inline while download remains explic
     $this->actingAs($owner)->get(route('documents.pdf.viewer', $document))
         ->assertSee('aria-label="Kembali ke detail dokumen"', false)
         ->assertSee('Unduh PDF ini');
-    $this->get(route('documents.pdf.download', [$document, 'inline' => 1]))->assertHeader('Content-Type', 'application/pdf')->assertHeader('Content-Disposition', 'inline; filename=SignWork-preview.pdf');
+    $this->get(route('documents.pdf.download', [$document, 'inline' => 1]))->assertHeader('Content-Type', 'application/pdf')->assertHeader('Content-Disposition', 'inline; filename="SignWork-preview.pdf"');
     $this->get(route('documents.pdf.download', $document))->assertDownload();
     $this->actingAs(User::factory()->create())->get(route('documents.pdf.viewer', $document))->assertForbidden();
 });

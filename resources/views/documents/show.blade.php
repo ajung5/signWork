@@ -59,7 +59,7 @@
                         <a href="{{ route('documents.edit', $document) }}" @class([
                             'rounded-lg border px-4 py-2.5 text-sm font-semibold transition',
                             'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100' => $document->isRejected(),
-                            'border-slate-300 bg-white text-slate-700 hover:bg-slate-100' => !$document->isRejected()
+                            'border-slate-300 bg-white text-slate-700 hover:bg-slate-100' => !$document->isRejected(),
                         ])>
                             Edit
                         </a>

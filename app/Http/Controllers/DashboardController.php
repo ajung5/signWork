@@ -273,7 +273,7 @@ class DashboardController extends Controller
         ) {
             return [
                 'document' => $document,
-                'label' => 'Buka verifikasi QR',
+                'label' => 'Validasi dokumen',
                 'description' => 'Dokumen final sudah masuk ke dokumen masuk Anda.',
                 'url' => route('verification.show', $cycle->public_id),
             ];

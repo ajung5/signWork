@@ -295,6 +295,24 @@ class PdfWorkerTest(unittest.TestCase):
                     self.assertFalse(any(r > 150 and g < 100 and b < 100 for r, g, b in zip(pixmap.samples[0::3], pixmap.samples[1::3], pixmap.samples[2::3])))
             previous = output
 
+    def test_bsre_signing_turns_the_pending_specimen_black_before_provider_upload(self):
+        steps = self.steps()
+        worker.run({'action': 'prepare', 'input': str(self.source), 'output': str(self.output),
+                    'steps': steps, 'specimen_version': 1, 'provider': 'bsre',
+                    'verification_url': 'https://example.test/verify/bsre-demo'})
+        signed = Path(self.directory.name) / 'bsre-signed-input.pdf'
+        worker.run({'action': 'sign_specimen', 'input': str(self.output), 'output': str(signed),
+                    'step': steps[0], 'verification_url': 'https://example.test/verify/bsre-demo'})
+        with fitz.open(signed) as doc:
+            pixmap = doc[0].get_pixmap(clip=fitz.Rect(30, 150, 340, 300), alpha=False)
+            self.assertFalse(any(r > 150 and g < 100 and b < 100 for r, g, b in zip(
+                pixmap.samples[0::3], pixmap.samples[1::3], pixmap.samples[2::3])))
+            self.assertNotIn('SIMULASI TTE - BUKAN TTE SAH', doc[0].get_text())
+
+    def test_certificate_info_returns_empty_for_unsigned_pdf(self):
+        result = worker.run({'action': 'certificate_info', 'input': str(self.source)})
+        self.assertEqual(result, {'signatures': []})
+
     def test_new_qr_sizes_render_at_exact_dimensions_and_legacy_size_is_retained(self):
         choices = worker.specimens.options([{}], 'https://example.test/verify/demo')[0]
         self.assertEqual(set(choices), {'framed', 'qr_2cm', 'qr_3cm'})

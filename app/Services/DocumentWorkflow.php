@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 
 class DocumentWorkflow
 {
@@ -230,6 +229,42 @@ class DocumentWorkflow
             Storage::disk('local')->delete(array_filter([$newPath, $sourcePath]));
             throw $error;
         }
+    }
+
+    public function replaceDraftSource(
+        Document $document,
+        User $actor,
+        UploadedFile $upload
+    ): void {
+        $cycle = $document->currentCycle();
+
+        if (! $cycle) {
+            throw ValidationException::withMessages([
+                'pdf' => 'Workflow PDF belum tersedia. Simpan dokumen sumber terlebih dahulu.',
+            ]);
+        }
+
+        $approvers = $cycle
+            ->approvals()
+            ->reorder('sequence')
+            ->pluck('user_id')
+            ->map(static fn (int|string $id): int => (int) $id)
+            ->all();
+
+        $signers = $cycle
+            ->signatures()
+            ->reorder('sequence')
+            ->pluck('user_id')
+            ->map(static fn (int|string $id): int => (int) $id)
+            ->all();
+
+        if ($approvers === [] || $signers === []) {
+            throw ValidationException::withMessages([
+                'pdf' => 'Peserta workflow belum lengkap. Atur peserta terlebih dahulu.',
+            ]);
+        }
+
+        $this->configure($document, $actor, $approvers, $signers, $upload);
     }
 
     /** @param array<string, mixed> $attributes */
@@ -550,7 +585,7 @@ class DocumentWorkflow
         }
     }
 
-    public function sign(Document $document, User $actor, string $token, ?string $passphrase = null): void
+    public function sign(Document $document, User $actor, string $token, string $passphrase): void
     {
         $outputs = [];
         try {
@@ -570,23 +605,32 @@ class DocumentWorkflow
                 $output = 'signwork/'.$locked->uuid.'/'.Str::uuid().'.pdf';
                 $outputs[] = $output;
                 $transaction = (string) Str::uuid();
+                $verificationUrl = rtrim((string) config('signwork.verification_base_url'), '/').
+                    route('verification.show', $cycle->public_id, false);
                 $context = [
-                    'nik' => $step->user?->nik,
+                    'nik' => $actor->nik,
                     'passphrase' => $passphrase,
-                    'verification_url' => rtrim((string) config('signwork.verification_base_url'), '/').
-                        route('verification.show', $cycle->public_id, false),
+                    'step' => $step->toArray(),
+                    'verification_url' => $verificationUrl,
                 ];
-                if ($cycle->qr_mode === 'per_signer') {
-                    $context += [
+                $providerInput = $cycle->current_path;
+                $providerInputSha256 = $cycle->current_sha256;
+                if (config('signwork.provider') === 'bsre') {
+                    $providerInput = 'signwork/'.$locked->uuid.'/'.Str::uuid().'.pdf';
+                    $outputs[] = $providerInput;
+                    $this->pdf->run('sign_specimen', $cycle->current_path, [
+                        'output' => $this->pdf->path($providerInput),
                         'step' => $step->toArray(),
-                    ];
+                        'verification_url' => $verificationUrl,
+                    ]);
+                    $providerInputSha256 = $this->pdf->hash($providerInput);
                 }
-                $result = $this->provider->sign($cycle->current_path, $output, $transaction, $step->name_snapshot, $context);
+                $result = $this->provider->sign($providerInput, $output, $transaction, $step->name_snapshot, $context);
                 $hash = $this->pdf->hash($output);
                 $step->update([
                     'status' => 'signed',
                     'acted_at' => now(),
-                    'input_sha256' => $cycle->current_sha256,
+                    'input_sha256' => $providerInputSha256,
                     'output_sha256' => $hash,
                     'output_path' => $output,
                     'provider_transaction_id' => $result->providerTransactionId,
@@ -634,6 +678,7 @@ class DocumentWorkflow
                 'steps' => $cycle->signatures()->get()->toArray(),
                 'verification_url' => $verificationUrl,
                 'specimen_version' => (int) $cycle->specimen_version,
+                'provider' => (string) config('signwork.provider', 'mock'),
             ]);
             $hash = $this->pdf->hash($prepared);
             $cycle->update([

@@ -62,18 +62,18 @@ class BsreClient
 
             $signUrl = $this->url((string) ($this->config['sign_path'] ?? '/api/sign/pdf'));
 
-                Log::info('BSrE signing request shape', [
-                    'url' => $signUrl,
-                    'tampilan' => $tampilan,
-                    'field_names' => array_keys($fields),
-                    'file_name' => basename($path),
-                    'file_size' => is_file($path) ? filesize($path) : null,
-                    'file_mime' => function_exists('mime_content_type')
-                        ? @mime_content_type($path)
-                        : null,
-                    'basic_auth' => $this->hasBasicAuth(),
-                    'bearer_auth' => filled($this->config['bearer_token'] ?? null),
-                ]);
+            Log::info('BSrE signing request shape', [
+                'url' => $signUrl,
+                'tampilan' => $tampilan,
+                'field_names' => array_keys($fields),
+                'file_name' => basename($path),
+                'file_size' => is_file($path) ? filesize($path) : null,
+                'file_mime' => function_exists('mime_content_type')
+                    ? @mime_content_type($path)
+                    : null,
+                'basic_auth' => $this->hasBasicAuth(),
+                'bearer_auth' => filled($this->config['bearer_token'] ?? null),
+            ]);
 
             $response = $this->request()
                 ->attach('file', $file, basename($path))
@@ -110,6 +110,7 @@ class BsreClient
                 rawurlencode($documentId),
                 (string) ($this->config['download_path'] ?? '/api/sign/download/{id}')
             );
+
             return $this->parseResponse($this->request()->get($this->url($path)), $documentId);
         } catch (RequestException $exception) {
             $status = $exception->response?->status();
@@ -175,6 +176,7 @@ class BsreClient
             if ($decoded === false || ! str_starts_with($decoded, '%PDF-')) {
                 throw ValidationException::withMessages(['provider' => 'BSrE mengembalikan Base64 yang bukan PDF.']);
             }
+
             return new BsreSignResponse($decoded, $documentId);
         }
 
