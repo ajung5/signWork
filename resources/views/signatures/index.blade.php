@@ -21,7 +21,8 @@
 
         <div class="mt-6 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
             <p class="text-sm leading-6 text-blue-800">
-                E-Sign Service belum diaktifkan pada milestone ini. State lock untuk WaitingSignature, Signing, dan Signed sudah disiapkan.
+                E-Sign Service belum diaktifkan pada milestone ini. State lock untuk WaitingSignature, Signing, dan Signed
+                sudah disiapkan.
             </p>
         </div>
 
@@ -49,10 +50,8 @@
                         @forelse ($documents as $document)
                             <tr class="transition hover:bg-violet-50/40">
                                 <td class="px-6 py-4">
-                                    <a
-                                        href="{{ route('documents.show', $document) }}"
-                                        class="text-sm font-semibold text-slate-900 hover:text-blue-700"
-                                    >
+                                    <a href="{{ route('documents.show', $document) }}"
+                                        class="text-sm font-semibold text-slate-900 hover:text-blue-700">
                                         {{ $document->title }}
                                     </a>
 
@@ -70,20 +69,15 @@
                                 </td>
 
                                 <td class="px-6 py-4 text-right">
-                                    <a
-                                        href="{{ route('documents.show', $document) }}"
-                                        class="inline-flex rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-800 hover:bg-violet-100"
-                                    >
+                                    <a href="{{ route('documents.show', $document) }}"
+                                        class="inline-flex rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-800 hover:bg-violet-100">
                                         Buka
                                     </a>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td
-                                    colspan="4"
-                                    class="px-6 py-14 text-center"
-                                >
+                                <td colspan="4" class="px-6 py-14 text-center">
                                     <p class="text-sm font-semibold text-slate-700">
                                         Tidak ada dokumen yang menunggu tanda tangan Anda.
                                     </p>

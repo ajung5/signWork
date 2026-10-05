@@ -7,20 +7,18 @@
         $draftEnd = $distribution['draft'];
         $submittedEnd = $draftEnd + $distribution['submitted'];
         $waitingEnd = $submittedEnd + $distribution['waiting'];
-        $processedEnd = min(
-            100,
-            $waitingEnd + $distribution['processed']
-        );
+        $processedEnd = min(100, $waitingEnd + $distribution['processed']);
 
-        $donutStyle = $totalDocuments > 0
-            ? "background: conic-gradient(
+        $donutStyle =
+            $totalDocuments > 0
+                ? "background: conic-gradient(
                 #b8c5df 0% {$draftEnd}%,
                 #76C0EC {$draftEnd}% {$submittedEnd}%,
                 #FFF6DC {$submittedEnd}% {$waitingEnd}%,
                 #425B9A {$waitingEnd}% {$processedEnd}%,
                 #e2e8f0 {$processedEnd}% 100%
             );"
-            : 'background: #e2e8f0;';
+                : 'background: #e2e8f0;';
     @endphp
 
     <div class="mx-auto max-w-[1600px]">
@@ -35,22 +33,19 @@
                 </h1>
 
                 <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-                    Ringkasan seluruh dokumen SignWork. Admin dapat mereview detail dokumen secara read-only dan mengelola akun User.
+                    Ringkasan seluruh dokumen SignWork. Admin dapat mereview detail dokumen secara read-only dan mengelola
+                    akun User.
                 </p>
             </div>
 
             <div class="grid w-full gap-3 sm:grid-cols-2 2xl:w-auto">
-                <a
-                    href="{{ route('admin.documents.index') }}"
-                    class="inline-flex min-h-12 items-center justify-center whitespace-nowrap rounded-lg border border-blue-700 bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800"
-                >
+                <a href="{{ route('admin.documents.index') }}"
+                    class="inline-flex min-h-12 items-center justify-center whitespace-nowrap rounded-lg border border-blue-700 bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800">
                     Lihat Semua Dokumen
                 </a>
 
-                <a
-                    href="{{ route('admin.users.create') }}"
-                    class="inline-flex min-h-12 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-cyan-300 bg-brand-sky px-5 py-3 text-sm font-semibold text-blue-950 transition hover:bg-cyan-200"
-                >
+                <a href="{{ route('admin.users.create') }}"
+                    class="inline-flex min-h-12 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-cyan-300 bg-brand-sky px-5 py-3 text-sm font-semibold text-blue-950 transition hover:bg-cyan-200">
                     <span class="text-lg leading-none">+</span>
                     Tambah User
                 </a>
@@ -128,12 +123,10 @@
                 </div>
 
                 <div class="flex flex-col items-center gap-7 p-6 sm:flex-row sm:justify-center xl:flex-col">
-                    <div
-                        class="relative flex h-52 w-52 shrink-0 items-center justify-center rounded-full"
-                        style="{{ $donutStyle }}"
-                        aria-label="Chart distribusi workflow dokumen"
-                    >
-                        <div class="flex h-32 w-32 flex-col items-center justify-center rounded-full border border-slate-100 bg-white shadow-sm">
+                    <div class="relative flex h-52 w-52 shrink-0 items-center justify-center rounded-full"
+                        style="{{ $donutStyle }}" aria-label="Chart distribusi workflow dokumen">
+                        <div
+                            class="flex h-32 w-32 flex-col items-center justify-center rounded-full border border-slate-100 bg-white shadow-sm">
                             <span class="text-3xl font-semibold tracking-tight text-slate-900">
                                 {{ number_format($totalDocuments) }}
                             </span>
@@ -145,7 +138,8 @@
                     </div>
 
                     <div class="grid w-full gap-3">
-                        <div class="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+                        <div
+                            class="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
                             <div class="flex items-center gap-2">
                                 <span class="h-2.5 w-2.5 rounded-full bg-[#b8c5df]"></span>
                                 <span class="text-sm text-slate-600">Draft</span>
@@ -156,7 +150,8 @@
                             </span>
                         </div>
 
-                        <div class="flex items-center justify-between gap-4 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5">
+                        <div
+                            class="flex items-center justify-between gap-4 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5">
                             <div class="flex items-center gap-2">
                                 <span class="h-2.5 w-2.5 rounded-full bg-brand-sky"></span>
                                 <span class="text-sm text-blue-700">Diajukan</span>
@@ -167,7 +162,8 @@
                             </span>
                         </div>
 
-                        <div class="flex items-center justify-between gap-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+                        <div
+                            class="flex items-center justify-between gap-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
                             <div class="flex items-center gap-2">
                                 <span class="h-2.5 w-2.5 rounded-full border border-amber-300 bg-brand-cream"></span>
                                 <span class="text-sm text-amber-700">Menunggu Verifikasi</span>
@@ -178,7 +174,8 @@
                             </span>
                         </div>
 
-                        <div class="flex items-center justify-between gap-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+                        <div
+                            class="flex items-center justify-between gap-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
                             <div class="flex items-center gap-2">
                                 <span class="h-2.5 w-2.5 rounded-full bg-brand-navy"></span>
                                 <span class="text-sm text-emerald-700">Tahap Lanjutan</span>
@@ -207,24 +204,39 @@
                     @foreach ($statusSummary as $item)
                         @php
                             [$border, $background, $text] = match ($item['status']) {
-                                \App\Enums\DocumentStatus::Draft =>
-                                    ['border-slate-200', 'bg-slate-50', 'text-slate-800'],
-                                \App\Enums\DocumentStatus::Submitted =>
-                                    ['border-sky-200', 'bg-sky-50', 'text-sky-800'],
-                                \App\Enums\DocumentStatus::WaitingApproval =>
-                                    ['border-amber-200', 'bg-amber-50', 'text-amber-800'],
-                                \App\Enums\DocumentStatus::Approved =>
-                                    ['border-emerald-200', 'bg-emerald-50', 'text-emerald-800'],
-                                \App\Enums\DocumentStatus::Rejected =>
-                                    ['border-red-200', 'bg-red-50', 'text-red-800'],
-                                \App\Enums\DocumentStatus::WaitingSignature =>
-                                    ['border-violet-200', 'bg-violet-50', 'text-violet-800'],
-                                \App\Enums\DocumentStatus::Signing =>
-                                    ['border-indigo-200', 'bg-indigo-50', 'text-indigo-800'],
-                                \App\Enums\DocumentStatus::Signed =>
-                                    ['border-teal-200', 'bg-teal-50', 'text-teal-800'],
-                                \App\Enums\DocumentStatus::SignFailed =>
-                                    ['border-rose-200', 'bg-rose-50', 'text-rose-800'],
+                                \App\Enums\DocumentStatus::Draft => [
+                                    'border-slate-200',
+                                    'bg-slate-50',
+                                    'text-slate-800',
+                                ],
+                                \App\Enums\DocumentStatus::Submitted => ['border-sky-200', 'bg-sky-50', 'text-sky-800'],
+                                \App\Enums\DocumentStatus::WaitingApproval => [
+                                    'border-amber-200',
+                                    'bg-amber-50',
+                                    'text-amber-800',
+                                ],
+                                \App\Enums\DocumentStatus::Approved => [
+                                    'border-emerald-200',
+                                    'bg-emerald-50',
+                                    'text-emerald-800',
+                                ],
+                                \App\Enums\DocumentStatus::Rejected => ['border-red-200', 'bg-red-50', 'text-red-800'],
+                                \App\Enums\DocumentStatus::WaitingSignature => [
+                                    'border-violet-200',
+                                    'bg-violet-50',
+                                    'text-violet-800',
+                                ],
+                                \App\Enums\DocumentStatus::Signing => [
+                                    'border-indigo-200',
+                                    'bg-indigo-50',
+                                    'text-indigo-800',
+                                ],
+                                \App\Enums\DocumentStatus::Signed => ['border-teal-200', 'bg-teal-50', 'text-teal-800'],
+                                \App\Enums\DocumentStatus::SignFailed => [
+                                    'border-rose-200',
+                                    'bg-rose-50',
+                                    'text-rose-800',
+                                ],
                             };
                         @endphp
 
@@ -243,21 +255,21 @@
         </section>
 
         <section class="mt-7 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div class="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div
+                class="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                 <div>
                     <h2 class="font-semibold text-slate-900">
                         10 Dokumen Terbaru
                     </h2>
 
                     <p class="mt-1 text-xs text-slate-500">
-                        Dashboard hanya menampilkan sepuluh dokumen terbaru. Gunakan menu Semua Dokumen untuk monitoring lengkap.
+                        Dashboard hanya menampilkan sepuluh dokumen terbaru. Gunakan menu Semua Dokumen untuk monitoring
+                        lengkap.
                     </p>
                 </div>
 
-                <a
-                    href="{{ route('admin.documents.index') }}"
-                    class="inline-flex rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-sm font-medium text-cyan-800 transition hover:bg-cyan-100"
-                >
+                <a href="{{ route('admin.documents.index') }}"
+                    class="inline-flex rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-sm font-medium text-cyan-800 transition hover:bg-cyan-100">
                     Semua Dokumen
                 </a>
             </div>
@@ -266,31 +278,38 @@
                 <table class="min-w-full divide-y divide-slate-200">
                     <thead class="bg-slate-50">
                         <tr>
-                            <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
+                            <th
+                                class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
                                 Dokumen
                             </th>
 
-                            <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
+                            <th
+                                class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
                                 Pemilik
                             </th>
 
-                            <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
+                            <th
+                                class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
                                 Tujuan
                             </th>
 
-                            <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
+                            <th
+                                class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
                                 Verifikator
                             </th>
 
-                            <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
+                            <th
+                                class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
                                 Signer
                             </th>
 
-                            <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
+                            <th
+                                class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
                                 Status
                             </th>
 
-                            <th class="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
+                            <th
+                                class="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
                                 Review
                             </th>
                         </tr>
@@ -330,20 +349,15 @@
                                 </td>
 
                                 <td class="whitespace-nowrap px-5 py-4 text-right sm:px-6">
-                                    <a
-                                        href="{{ route('documents.show', $document) }}"
-                                        class="inline-flex rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-                                    >
+                                    <a href="{{ route('documents.show', $document) }}"
+                                        class="inline-flex rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100">
                                         Review
                                     </a>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td
-                                    colspan="7"
-                                    class="px-6 py-14 text-center text-sm text-slate-500"
-                                >
+                                <td colspan="7" class="px-6 py-14 text-center text-sm text-slate-500">
                                     Belum ada dokumen.
                                 </td>
                             </tr>

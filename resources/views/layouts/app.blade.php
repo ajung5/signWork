@@ -47,8 +47,7 @@
                     'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
                     'bg-blue-50 text-blue-800' => request()->routeIs('dashboard'),
                     'text-slate-600 hover:bg-slate-100 hover:text-slate-900' => !request()->routeIs(
-                        'dashboard'
-                    )
+                        'dashboard'),
                 ])>
                     Dashboard
                 </a>
@@ -58,8 +57,7 @@
                         'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
                         'bg-cyan-50 text-cyan-800' => request()->routeIs('admin.documents.*'),
                         'text-slate-600 hover:bg-slate-100 hover:text-slate-900' => !request()->routeIs(
-                            'admin.documents.*'
-                        )
+                            'admin.documents.*'),
                     ])>
                         Semua Dokumen
                     </a>
@@ -68,8 +66,7 @@
                         'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
                         'bg-indigo-50 text-indigo-800' => request()->routeIs('admin.users.*'),
                         'text-slate-600 hover:bg-slate-100 hover:text-slate-900' => !request()->routeIs(
-                            'admin.users.*'
-                        )
+                            'admin.users.*'),
                     ])>
                         Manajemen User
                     </a>
@@ -81,7 +78,8 @@
                     <a href="{{ route('validation.index') }}" @class([
                         'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
                         'bg-emerald-50 text-emerald-800' => request()->routeIs('validation.*'),
-                        'text-slate-600 hover:bg-slate-100 hover:text-slate-900' => !request()->routeIs('validation.*')
+                        'text-slate-600 hover:bg-slate-100 hover:text-slate-900' => !request()->routeIs(
+                            'validation.*'),
                     ])>
                         Validasi
                     </a>
@@ -90,8 +88,7 @@
                         'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
                         'bg-blue-50 text-blue-800' => request()->routeIs('documents.*'),
                         'text-slate-600 hover:bg-slate-100 hover:text-slate-900' => !request()->routeIs(
-                            'documents.*'
-                        )
+                            'documents.*'),
                     ])>
                         Dokumen Saya
                     </a>
@@ -100,8 +97,7 @@
                         'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
                         'bg-cyan-50 text-cyan-800' => request()->routeIs('incoming-documents.*'),
                         'text-slate-600 hover:bg-slate-100 hover:text-slate-900' => !request()->routeIs(
-                            'incoming-documents.*'
-                        )
+                            'incoming-documents.*'),
                     ])>
                         Dokumen Masuk
                     </a>
@@ -109,7 +105,8 @@
                     <a href="{{ route('validation.index') }}" @class([
                         'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
                         'bg-emerald-50 text-emerald-800' => request()->routeIs('validation.*'),
-                        'text-slate-600 hover:bg-slate-100 hover:text-slate-900' => !request()->routeIs('validation.*')
+                        'text-slate-600 hover:bg-slate-100 hover:text-slate-900' => !request()->routeIs(
+                            'validation.*'),
                     ])>
                         Validasi
                     </a>
@@ -118,8 +115,7 @@
                         'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
                         'bg-amber-50 text-amber-800' => request()->routeIs('approvals.*'),
                         'text-slate-600 hover:bg-slate-100 hover:text-slate-900' => !request()->routeIs(
-                            'approvals.*'
-                        )
+                            'approvals.*'),
                     ])>
                         Verifikasi
                     </a>
@@ -128,31 +124,38 @@
                         'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
                         'bg-violet-50 text-violet-800' => request()->routeIs('signatures.*'),
                         'text-slate-600 hover:bg-slate-100 hover:text-slate-900' => !request()->routeIs(
-                            'signatures.*'
-                        )
+                            'signatures.*'),
                     ])>
                         Tanda Tangan
                     </a>
 
                     <div class="pt-5">
                         <p class="px-3 pb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Master</p>
-                        <details class="group" @if(request()->routeIs('workflow-settings.*')) open @endif>
-                            <summary class="flex cursor-pointer list-none items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-blue-900 hover:bg-blue-50 [&::-webkit-details-marker]:hidden">
-                                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 shadow-sm">
-                                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5">
+                        <details class="group" @if (request()->routeIs('workflow-settings.*')) open @endif>
+                            <summary
+                                class="flex cursor-pointer list-none items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-blue-900 hover:bg-blue-50 [&::-webkit-details-marker]:hidden">
+                                <span
+                                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 shadow-sm">
+                                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="1.8" class="h-5 w-5">
                                         <circle cx="9" cy="8" r="3" />
                                         <path d="M3 20v-2a6 6 0 0 1 12 0v2M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 4v2" />
                                     </svg>
                                 </span>
                                 <span class="flex-1">Pengguna</span>
-                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 transition-transform group-open:rotate-180">
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" class="h-4 w-4 transition-transform group-open:rotate-180">
                                     <path d="m6 9 6 6 6-6" />
                                 </svg>
                             </summary>
                             <div class="ml-8 mt-2 space-y-1 border-l border-blue-100 pl-3">
                                 @foreach (['signer' => 'Penandatangan', 'destination' => 'Tujuan Naskah', 'approver' => 'Verifikator'] as $masterType => $masterLabel)
-                                    <a href="{{ route('workflow-settings.group', ['type' => $masterType]) }}" @if(request()->route('type') === $masterType || (isset($entry) && request()->routeIs('workflow-settings.entry.*') && $entry->type->value === $masterType)) aria-current="page" @endif class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition hover:bg-blue-50 hover:text-blue-900 {{ request()->route('type') === $masterType ? 'bg-blue-100 text-blue-900' : 'text-slate-600' }}">
-                                        <span aria-hidden="true" class="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-300"></span>
+                                    <a href="{{ route('workflow-settings.group', ['type' => $masterType]) }}"
+                                        @if (request()->route('type') === $masterType ||
+                                                (isset($entry) && request()->routeIs('workflow-settings.entry.*') && $entry->type->value === $masterType)) aria-current="page" @endif
+                                        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition hover:bg-blue-50 hover:text-blue-900 {{ request()->route('type') === $masterType ? 'bg-blue-100 text-blue-900' : 'text-slate-600' }}">
+                                        <span aria-hidden="true"
+                                            class="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-300"></span>
                                         {{ $masterLabel }}
                                     </a>
                                 @endforeach
@@ -186,19 +189,30 @@
 
                     <div class="flex shrink-0 items-center gap-3">
                         <details class="relative">
-                            <summary class="flex cursor-pointer list-none items-center gap-3 rounded-xl px-3 py-2 text-right transition hover:bg-blue-50 [&::-webkit-details-marker]:hidden">
+                            <summary
+                                class="flex cursor-pointer list-none items-center gap-3 rounded-xl px-3 py-2 text-right transition hover:bg-blue-50 [&::-webkit-details-marker]:hidden">
                                 <span>
-                                    <span class="block text-sm font-medium text-slate-900">{{ auth()->user()->name }}</span>
-                                    <span class="block text-xs text-slate-500">{{ auth()->user()->role->label() }} · Profil Saya</span>
+                                    <span
+                                        class="block text-sm font-medium text-slate-900">{{ auth()->user()->name }}</span>
+                                    <span class="block text-xs text-slate-500">{{ auth()->user()->role->label() }} ·
+                                        Profil Saya</span>
                                 </span>
-                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 text-slate-500">
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" class="h-4 w-4 text-slate-500">
                                     <path d="m6 9 6 6 6-6" />
                                 </svg>
                             </summary>
-                            <div class="absolute right-0 z-30 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 text-left shadow-lg">
-                                <a href="{{ route('profile.show') }}" class="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-blue-50">Lihat Profil</a>
-                                <a href="{{ route('profile.edit') }}" class="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-blue-50">Edit Profil</a>
-                                <a href="{{ route('profile.password.edit') }}" class="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-blue-50">Ganti Password</a>
+                            <div
+                                class="absolute right-0 z-30 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 text-left shadow-lg">
+                                <a href="{{ route('profile.show') }}"
+                                    class="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-blue-50">Lihat
+                                    Profil</a>
+                                <a href="{{ route('profile.edit') }}"
+                                    class="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-blue-50">Edit
+                                    Profil</a>
+                                <a href="{{ route('profile.password.edit') }}"
+                                    class="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-blue-50">Ganti
+                                    Password</a>
                             </div>
                         </details>
 

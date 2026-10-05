@@ -8,11 +8,12 @@
         $inspectionSignatures = data_get($inspection, 'signatures', []);
         $inspectionFileSize = $fileSize ?? null;
 
-        $inspectionFileSizeLabel = $inspectionFileSize === null
-            ? '—'
-            : ($inspectionFileSize >= 1048576
-                ? number_format($inspectionFileSize / 1048576, 2, ',', '.') . ' MB'
-                : number_format($inspectionFileSize / 1024, 2, ',', '.') . ' KB');
+        $inspectionFileSizeLabel =
+            $inspectionFileSize === null
+                ? '—'
+                : ($inspectionFileSize >= 1048576
+                    ? number_format($inspectionFileSize / 1048576, 2, ',', '.') . ' MB'
+                    : number_format($inspectionFileSize / 1024, 2, ',', '.') . ' KB');
     @endphp
 
     <div class="mx-auto max-w-3xl space-y-6">
@@ -30,23 +31,16 @@
             </p>
         </div>
 
-        <form method="POST"
-            action="{{ route('validation.lookup') }}"
-            enctype="multipart/form-data"
+        <form method="POST" action="{{ route('validation.lookup') }}" enctype="multipart/form-data"
             class="space-y-4 rounded-2xl border border-emerald-200 bg-white p-6 shadow-sm">
 
             @csrf
 
-            <label class="block text-sm font-semibold text-slate-800"
-                for="validation-document">
+            <label class="block text-sm font-semibold text-slate-800" for="validation-document">
                 File PDF yang akan diperiksa
             </label>
 
-            <input id="validation-document"
-                name="document"
-                type="file"
-                accept=".pdf,application/pdf"
-                required
+            <input id="validation-document" name="document" type="file" accept=".pdf,application/pdf" required
                 class="block w-full rounded-lg border border-slate-300 px-4 py-3 text-sm file:mr-4 file:rounded-md file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:font-semibold file:text-emerald-700 focus:border-emerald-500 focus:ring-emerald-500">
 
             <p class="text-xs text-slate-500">
@@ -72,10 +66,9 @@
         </div>
 
         @if ($inspection !== null)
-            <section class="rounded-2xl border
-                {{ count($inspectionSignatures) > 0
-                    ? 'border-emerald-200 bg-emerald-50'
-                    : 'border-amber-200 bg-amber-50' }}
+            <section
+                class="rounded-2xl border
+                {{ count($inspectionSignatures) > 0 ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50' }}
                 p-6 shadow-sm">
 
                 @if (count($inspectionSignatures) > 0)

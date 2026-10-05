@@ -3,11 +3,12 @@
     $signedCount = $cycle->signatures->where('status', 'signed')->count();
     $totalSignatures = $cycle->signatures->count();
     $isValid = $cycle->status === 'signed' && $signedCount > 0 && $signedCount === $totalSignatures;
-    $fileSizeLabel = $fileSize === null
-        ? '—'
-        : ($fileSize >= 1048576
-            ? number_format($fileSize / 1048576, 2, ',', '.').' MB'
-            : number_format($fileSize / 1024, 2, ',', '.').' KB');
+    $fileSizeLabel =
+        $fileSize === null
+            ? '—'
+            : ($fileSize >= 1048576
+                ? number_format($fileSize / 1048576, 2, ',', '.') . ' MB'
+                : number_format($fileSize / 1024, 2, ',', '.') . ' KB');
 @endphp
 <!doctype html>
 <html lang="id">
@@ -24,7 +25,8 @@
     <main class="mx-auto max-w-2xl space-y-4">
         <section class="rounded-3xl bg-white p-5 shadow-sm sm:p-8">
             <div class="flex flex-col items-center text-center">
-                <div class="flex h-28 w-28 items-center justify-center rounded-full bg-emerald-100 ring-8 ring-emerald-50">
+                <div
+                    class="flex h-28 w-28 items-center justify-center rounded-full bg-emerald-100 ring-8 ring-emerald-50">
                     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         class="h-16 w-16 text-emerald-500" stroke-width="1.7">
                         <path d="M12 3.5 19 6v5.4c0 4.3-2.9 7.8-7 9.1-4.1-1.3-7-4.8-7-9.1V6l7-2.5Z" />
@@ -69,7 +71,8 @@
         </section>
 
         <details class="group rounded-2xl bg-white shadow-sm" open>
-            <summary class="flex cursor-pointer list-none items-center gap-4 p-5 text-lg font-semibold sm:p-6 [&::-webkit-details-marker]:hidden">
+            <summary
+                class="flex cursor-pointer list-none items-center gap-4 p-5 text-lg font-semibold sm:p-6 [&::-webkit-details-marker]:hidden">
                 <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-7 w-7"
                     stroke-width="1.8">
                     <path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z" />
@@ -99,10 +102,12 @@
         </details>
 
         <details class="group rounded-2xl bg-white shadow-sm">
-            <summary class="flex cursor-pointer list-none items-center gap-4 p-5 text-lg font-semibold sm:p-6 [&::-webkit-details-marker]:hidden">
+            <summary
+                class="flex cursor-pointer list-none items-center gap-4 p-5 text-lg font-semibold sm:p-6 [&::-webkit-details-marker]:hidden">
                 <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-7 w-7"
                     stroke-width="1.8">
-                    <path d="M6 18c0-4.4 3.6-8 8-8 2.2 0 4-1.8 4-4 0-1.7-1.3-3-3-3-2.5 0-4.7 3.5-6.1 6.8C7.5 13.5 5.7 16.1 5 18c-.5 1.4.2 2.5 1.5 2.5 1.9 0 4.2-2.1 6.3-5.2" />
+                    <path
+                        d="M6 18c0-4.4 3.6-8 8-8 2.2 0 4-1.8 4-4 0-1.7-1.3-3-3-3-2.5 0-4.7 3.5-6.1 6.8C7.5 13.5 5.7 16.1 5 18c-.5 1.4.2 2.5 1.5 2.5 1.9 0 4.2-2.1 6.3-5.2" />
                     <path d="M15 16h5M17.5 13.5v5" stroke-linecap="round" />
                 </svg>
                 <span class="flex-1">Informasi Tanda Tangan</span>
@@ -129,8 +134,7 @@
                             </p>
                         @endif
 
-                        <button type="button"
-                            data-open-signer="signer-detail-{{ $step->id }}"
+                        <button type="button" data-open-signer="signer-detail-{{ $step->id }}"
                             class="mt-4 rounded-lg border border-emerald-700 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
                             Lihat detail tanda tangan
                         </button>
@@ -142,14 +146,15 @@
         @foreach ($cycle->signatures as $step)
             @php
                 $signer = $step->user;
-                $profile = is_array($step->profile_snapshot) && $step->profile_snapshot !== []
-                    ? $step->profile_snapshot
-                    : [
-                        'jabatan' => $signer?->jabatan,
-                        'unit_kerja' => $signer?->unit_kerja,
-                        'pangkat' => $signer?->pangkat,
-                        'golongan' => $signer?->golongan,
-                    ];
+                $profile =
+                    is_array($step->profile_snapshot) && $step->profile_snapshot !== []
+                        ? $step->profile_snapshot
+                        : [
+                            'jabatan' => $signer?->jabatan,
+                            'unit_kerja' => $signer?->unit_kerja,
+                            'pangkat' => $signer?->pangkat,
+                            'golongan' => $signer?->golongan,
+                        ];
                 $certificate = $certificateByStep[$step->id] ?? [];
                 $certificateReady = $isBsre && $step->status === 'signed';
                 $certificateEmbedded = $certificateReady && filled($certificate['subject_dn'] ?? null);
@@ -159,10 +164,13 @@
                 <div class="border-b border-slate-100 p-5 sm:p-6">
                     <div class="flex items-start justify-between gap-4">
                         <div>
-                            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Signer information</p>
+                            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Signer information
+                            </p>
                             <h2 class="mt-1 text-xl font-semibold">{{ $step->name_snapshot }}</h2>
                         </div>
-                        <button type="button" data-close-dialog class="rounded-lg px-2 py-1 text-2xl leading-none text-slate-400 hover:bg-slate-100" aria-label="Tutup">&times;</button>
+                        <button type="button" data-close-dialog
+                            class="rounded-lg px-2 py-1 text-2xl leading-none text-slate-400 hover:bg-slate-100"
+                            aria-label="Tutup">&times;</button>
                     </div>
                 </div>
                 <div class="space-y-4 p-5 sm:p-6">
@@ -173,7 +181,9 @@
                         </div>
                         <div>
                             <dt class="text-slate-500">NIK</dt>
-                            <dd class="mt-1">{{ $signer?->nik ? substr($signer->nik, 0, 4).'********'.substr($signer->nik, -4) : '—' }}</dd>
+                            <dd class="mt-1">
+                                {{ $signer?->nik ? substr($signer->nik, 0, 4) . '********' . substr($signer->nik, -4) : '—' }}
+                            </dd>
                         </div>
                         <div>
                             <dt class="text-slate-500">Jabatan</dt>
@@ -185,16 +195,22 @@
                         </div>
                         <div>
                             <dt class="text-slate-500">Pangkat / Golongan</dt>
-                            <dd class="mt-1">{{ $profile['pangkat'] ?? '—' }} / {{ $profile['golongan'] ?? '—' }}</dd>
+                            <dd class="mt-1">{{ $profile['pangkat'] ?? '—' }} / {{ $profile['golongan'] ?? '—' }}
+                            </dd>
                         </div>
                         <div>
                             <dt class="text-slate-500">Waktu tanda tangan</dt>
-                            <dd class="mt-1">{{ $step->acted_at ? $step->acted_at->timezone('Asia/Jakarta')->format('d M Y H:i:s').' WIB' : 'Belum ditandatangani' }}</dd>
+                            <dd class="mt-1">
+                                {{ $step->acted_at ? $step->acted_at->timezone('Asia/Jakarta')->format('d M Y H:i:s') . ' WIB' : 'Belum ditandatangani' }}
+                            </dd>
                         </div>
                     </dl>
 
-                    <div class="rounded-xl border {{ $certificateReady ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50' }} p-4">
-                        <p class="text-xs font-semibold uppercase tracking-wide {{ $certificateReady ? 'text-emerald-700' : 'text-amber-700' }}">Certificate status</p>
+                    <div
+                        class="rounded-xl border {{ $certificateReady ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50' }} p-4">
+                        <p
+                            class="text-xs font-semibold uppercase tracking-wide {{ $certificateReady ? 'text-emerald-700' : 'text-amber-700' }}">
+                            Certificate status</p>
                         <p class="mt-1 font-semibold {{ $certificateReady ? 'text-emerald-900' : 'text-amber-900' }}">
                             {{ $certificateEmbedded ? 'Sertifikat BSrE terdeteksi pada PDF final' : ($certificateReady ? 'BSrE signing berhasil diterima' : 'Belum tersedia') }}
                         </p>
@@ -204,7 +220,8 @@
                     </div>
 
                     <div class="flex flex-wrap justify-end gap-2">
-                        <button type="button" data-close-dialog class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Tutup</button>
+                        <button type="button" data-close-dialog
+                            class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Tutup</button>
                         <button type="button" data-open-certificate="certificate-detail-{{ $step->id }}"
                             class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
                             View Certificate
@@ -218,28 +235,66 @@
                 <div class="border-b border-slate-100 p-5 sm:p-6">
                     <div class="flex items-start justify-between gap-4">
                         <div>
-                            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Certificate detail</p>
+                            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Certificate
+                                detail</p>
                             <h2 class="mt-1 text-xl font-semibold">{{ $step->name_snapshot }}</h2>
                         </div>
-                        <button type="button" data-close-dialog class="rounded-lg px-2 py-1 text-2xl leading-none text-slate-400 hover:bg-slate-100" aria-label="Tutup">&times;</button>
+                        <button type="button" data-close-dialog
+                            class="rounded-lg px-2 py-1 text-2xl leading-none text-slate-400 hover:bg-slate-100"
+                            aria-label="Tutup">&times;</button>
                     </div>
                 </div>
                 <div class="space-y-4 p-5 sm:p-6">
                     <dl class="divide-y divide-slate-100 rounded-xl border border-slate-200 text-sm">
-                        <div class="flex items-start justify-between gap-4 p-4"><dt class="text-slate-500">Certificate status</dt><dd class="text-right font-semibold {{ $certificateReady ? 'text-emerald-700' : 'text-amber-700' }}">{{ $certificateEmbedded ? 'Sertifikat tertanam' : ($certificateReady ? 'Signing BSrE berhasil' : 'Belum tersedia') }}</dd></div>
-                        <div class="flex items-start justify-between gap-4 p-4"><dt class="text-slate-500">Provider</dt><dd class="text-right font-semibold">{{ $isBsre ? 'eSign Client BSrE' : 'Mock (simulasi)' }}</dd></div>
-                        <div class="flex items-start justify-between gap-4 p-4"><dt class="text-slate-500">SHA-1 fingerprint</dt><dd class="max-w-[65%] break-all text-right font-mono text-xs">{{ $certificate['fingerprint_sha1'] ?? 'Belum tersedia' }}</dd></div>
-                        <div class="flex items-start justify-between gap-4 p-4"><dt class="text-slate-500">Issuer DN</dt><dd class="max-w-[65%] break-all text-right text-xs">{{ $certificate['issuer_dn'] ?? 'Belum tersedia' }}</dd></div>
-                        <div class="flex items-start justify-between gap-4 p-4"><dt class="text-slate-500">Subject DN</dt><dd class="max-w-[65%] break-all text-right text-xs">{{ $certificate['subject_dn'] ?? 'Belum tersedia' }}</dd></div>
-                        <div class="flex items-start justify-between gap-4 p-4"><dt class="text-slate-500">Validity</dt><dd class="max-w-[65%] text-right text-xs">{{ $certificate['not_before'] ?? '—' }}<br>{{ $certificate['not_after'] ?? '—' }}</dd></div>
-                        <div class="flex items-start justify-between gap-4 p-4"><dt class="text-slate-500">Key usage</dt><dd class="text-right font-semibold">Digital Signature<br>Non-Repudiation</dd></div>
-                        <div class="flex items-start justify-between gap-4 p-4"><dt class="text-slate-500">Transaction ID</dt><dd class="max-w-[60%] break-all text-right font-mono text-xs">{{ $step->provider_transaction_id ?? '—' }}</dd></div>
+                        <div class="flex items-start justify-between gap-4 p-4">
+                            <dt class="text-slate-500">Certificate status</dt>
+                            <dd
+                                class="text-right font-semibold {{ $certificateReady ? 'text-emerald-700' : 'text-amber-700' }}">
+                                {{ $certificateEmbedded ? 'Sertifikat tertanam' : ($certificateReady ? 'Signing BSrE berhasil' : 'Belum tersedia') }}
+                            </dd>
+                        </div>
+                        <div class="flex items-start justify-between gap-4 p-4">
+                            <dt class="text-slate-500">Provider</dt>
+                            <dd class="text-right font-semibold">
+                                {{ $isBsre ? 'eSign Client BSrE' : 'Mock (simulasi)' }}</dd>
+                        </div>
+                        <div class="flex items-start justify-between gap-4 p-4">
+                            <dt class="text-slate-500">SHA-1 fingerprint</dt>
+                            <dd class="max-w-[65%] break-all text-right font-mono text-xs">
+                                {{ $certificate['fingerprint_sha1'] ?? 'Belum tersedia' }}</dd>
+                        </div>
+                        <div class="flex items-start justify-between gap-4 p-4">
+                            <dt class="text-slate-500">Issuer DN</dt>
+                            <dd class="max-w-[65%] break-all text-right text-xs">
+                                {{ $certificate['issuer_dn'] ?? 'Belum tersedia' }}</dd>
+                        </div>
+                        <div class="flex items-start justify-between gap-4 p-4">
+                            <dt class="text-slate-500">Subject DN</dt>
+                            <dd class="max-w-[65%] break-all text-right text-xs">
+                                {{ $certificate['subject_dn'] ?? 'Belum tersedia' }}</dd>
+                        </div>
+                        <div class="flex items-start justify-between gap-4 p-4">
+                            <dt class="text-slate-500">Validity</dt>
+                            <dd class="max-w-[65%] text-right text-xs">
+                                {{ $certificate['not_before'] ?? '—' }}<br>{{ $certificate['not_after'] ?? '—' }}</dd>
+                        </div>
+                        <div class="flex items-start justify-between gap-4 p-4">
+                            <dt class="text-slate-500">Key usage</dt>
+                            <dd class="text-right font-semibold">Digital Signature<br>Non-Repudiation</dd>
+                        </div>
+                        <div class="flex items-start justify-between gap-4 p-4">
+                            <dt class="text-slate-500">Transaction ID</dt>
+                            <dd class="max-w-[60%] break-all text-right font-mono text-xs">
+                                {{ $step->provider_transaction_id ?? '—' }}</dd>
+                        </div>
                     </dl>
                     <p class="rounded-lg bg-slate-50 p-3 text-xs leading-5 text-slate-600">
-                        Data fingerprint dan DN dibaca dari sertifikat yang tertanam pada PDF final. SignWork tidak menyimpan private key atau passphrase signer.
+                        Data fingerprint dan DN dibaca dari sertifikat yang tertanam pada PDF final. SignWork tidak
+                        menyimpan private key atau passphrase signer.
                     </p>
                     <div class="flex justify-end">
-                        <button type="button" data-close-dialog class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900">Tutup</button>
+                        <button type="button" data-close-dialog
+                            class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900">Tutup</button>
                     </div>
                 </div>
             </dialog>
@@ -248,22 +303,27 @@
         @if ($cycle->status === 'signed')
             <section class="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
                 <h2 class="text-sm font-semibold">SHA-256 PDF final</h2>
-                <code class="mt-2 block break-all rounded-lg bg-slate-100 p-3 text-xs">{{ $cycle->final_sha256 }}</code>
-                <form method="POST" action="{{ route('verification.compare', $cycle->public_id) }}" class="mt-5 space-y-3"
-                    data-hash-form>
+                <code
+                    class="mt-2 block break-all rounded-lg bg-slate-100 p-3 text-xs">{{ $cycle->final_sha256 }}</code>
+                <form method="POST" action="{{ route('verification.compare', $cycle->public_id) }}"
+                    class="mt-5 space-y-3" data-hash-form>
                     @csrf
                     <h2 class="font-semibold">Bandingkan file Anda</h2>
-                    <p class="text-sm text-slate-600">File dihitung di browser dan tidak diunggah. Hanya hash yang dikirim untuk dibandingkan.</p>
-                    <input type="file" accept=".pdf,application/pdf" data-hash-file class="block w-full rounded border border-slate-300 p-2">
+                    <p class="text-sm text-slate-600">File dihitung di browser dan tidak diunggah. Hanya hash yang
+                        dikirim untuk dibandingkan.</p>
+                    <input type="file" accept=".pdf,application/pdf" data-hash-file
+                        class="block w-full rounded border border-slate-300 p-2">
                     <label class="block text-sm">Atau tempel SHA-256
                         <input name="sha256" data-hash-input pattern="[a-fA-F0-9]{64}" required maxlength="64"
                             class="mt-2 block w-full rounded border border-slate-300 p-3 font-mono text-xs">
                     </label>
                     <p data-hash-status role="status" class="text-sm text-slate-600"></p>
-                    <button class="rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white">Bandingkan hash</button>
+                    <button class="rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white">Bandingkan
+                        hash</button>
                 </form>
                 @if (isset($match))
-                    <p role="status" class="mt-4 rounded-lg border p-4 font-semibold {{ $match ? 'border-emerald-300 bg-emerald-50 text-emerald-900' : 'border-red-300 bg-red-50 text-red-900' }}">
+                    <p role="status"
+                        class="mt-4 rounded-lg border p-4 font-semibold {{ $match ? 'border-emerald-300 bg-emerald-50 text-emerald-900' : 'border-red-300 bg-red-50 text-red-900' }}">
                         {{ $match ? 'Hash cocok dengan PDF final yang tercatat.' : 'Hash tidak cocok. File berbeda dari PDF final yang tercatat.' }}
                     </p>
                 @endif
@@ -272,29 +332,31 @@
                 @enderror
             </section>
         @else
-            <p class="rounded-xl bg-white p-5 text-sm text-slate-600 shadow-sm">Validasi hash final tersedia setelah seluruh signer menyelesaikan proses.</p>
+            <p class="rounded-xl bg-white p-5 text-sm text-slate-600 shadow-sm">Validasi hash final tersedia setelah
+                seluruh signer menyelesaikan proses.</p>
         @endif
     </main>
-<script>
-    document.querySelectorAll('[data-open-signer], [data-open-certificate]').forEach((button) => {
-        button.addEventListener('click', () => {
-            const currentDialog = button.closest('dialog');
-            const target = document.getElementById(button.dataset.openSigner || button.dataset.openCertificate);
-            if (currentDialog?.open) currentDialog.close();
-            target?.showModal();
+    <script>
+        document.querySelectorAll('[data-open-signer], [data-open-certificate]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const currentDialog = button.closest('dialog');
+                const target = document.getElementById(button.dataset.openSigner || button.dataset
+                    .openCertificate);
+                if (currentDialog?.open) currentDialog.close();
+                target?.showModal();
+            });
         });
-    });
 
-    document.querySelectorAll('[data-close-dialog]').forEach((button) => {
-        button.addEventListener('click', () => button.closest('dialog')?.close());
-    });
-
-    document.querySelectorAll('dialog').forEach((dialog) => {
-        dialog.addEventListener('click', (event) => {
-            if (event.target === dialog) dialog.close();
+        document.querySelectorAll('[data-close-dialog]').forEach((button) => {
+            button.addEventListener('click', () => button.closest('dialog')?.close());
         });
-    });
-</script>
+
+        document.querySelectorAll('dialog').forEach((dialog) => {
+            dialog.addEventListener('click', (event) => {
+                if (event.target === dialog) dialog.close();
+            });
+        });
+    </script>
 
 </body>
 

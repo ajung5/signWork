@@ -18,29 +18,25 @@
             </p>
         </div>
 
-        <form
-            action="{{ route('workflow-settings.entry.update', $entry) }}"
-            method="POST"
-            data-master-edit data-assigned-users="{{ json_encode($assignedUsers) }}"
-            class="mt-7 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
-        >
+        <form action="{{ route('workflow-settings.entry.update', $entry) }}" method="POST" data-master-edit
+            data-assigned-users="{{ json_encode($assignedUsers) }}"
+            class="mt-7 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             @csrf
             @method('PUT')
 
             <div class="space-y-6 p-5 sm:p-6">
                 <div>
-                    <label
-                        for="target_user_id"
-                        class="block text-sm font-medium text-slate-700"
-                    >
+                    <label for="target_user_id" class="block text-sm font-medium text-slate-700">
                         Grup
                     </label>
 
                     <fieldset class="mt-2 grid gap-3 sm:grid-cols-3" data-master-types>
                         <legend class="sr-only">Grup Data Master</legend>
                         @foreach ($types as $type)
-                            <label class="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm font-medium text-blue-900">
-                                <input type="radio" name="type" value="{{ $type->value }}" required @checked(old('type', $entry->type->value) === $type->value)>
+                            <label
+                                class="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm font-medium text-blue-900">
+                                <input type="radio" name="type" value="{{ $type->value }}" required
+                                    @checked(old('type', $entry->type->value) === $type->value)>
                                 {{ $type->label() }}
                             </label>
                         @endforeach
@@ -48,28 +44,17 @@
                 </div>
 
                 <div>
-                    <label
-                        for="target_user_id"
-                        class="block text-sm font-medium text-slate-700"
-                    >
+                    <label for="target_user_id" class="block text-sm font-medium text-slate-700">
                         User
                     </label>
 
-                    <select
-                        id="target_user_id"
-                        name="target_user_id"
-                        required
-                        class="mt-2 block w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-800"
-                    >
+                    <select id="target_user_id" name="target_user_id" required
+                        class="mt-2 block w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-800">
                         @php($usedIds = $assignedUsers->get(old('type', $entry->type->value), collect()))
                         <option value="">Pilih user</option>
                         @foreach ($users as $user)
-                            <option
-                                value="{{ $user->id }}"
-                                @disabled($usedIds->contains($user->id))
-                                @if($usedIds->contains($user->id)) hidden @endif
-                                @selected(old('target_user_id', $entry->target_user_id) == $user->id)
-                            >
+                            <option value="{{ $user->id }}" @disabled($usedIds->contains($user->id))
+                                @if ($usedIds->contains($user->id)) hidden @endif @selected(old('target_user_id', $entry->target_user_id) == $user->id)>
                                 {{ $user->name }} — {{ $user->email }}
                                 @if ($user->id === auth()->id())
                                     (Saya)
@@ -86,13 +71,8 @@
                 </div>
 
                 <label class="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                    <input
-                        type="checkbox"
-                        name="is_default"
-                        value="1"
-                        @checked(old('is_default', $entry->is_default))
-                        class="mt-0.5 h-4 w-4 rounded border-slate-300"
-                    >
+                    <input type="checkbox" name="is_default" value="1" @checked(old('is_default', $entry->is_default))
+                        class="mt-0.5 h-4 w-4 rounded border-slate-300">
 
                     <span>
                         <span class="block text-sm font-medium text-slate-800">
@@ -106,18 +86,15 @@
                 </label>
             </div>
 
-            <div class="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
-                <a
-                    href="{{ route('workflow-settings.group', ['type' => $entry->type->value]) }}"
-                    class="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
-                >
+            <div
+                class="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+                <a href="{{ route('workflow-settings.group', ['type' => $entry->type->value]) }}"
+                    class="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100">
                     Batal
                 </a>
 
-                <button
-                    type="submit"
-                    class="inline-flex items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-5 py-2.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"
-                >
+                <button type="submit"
+                    class="inline-flex items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-5 py-2.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-100">
                     Simpan Perubahan
                 </button>
             </div>

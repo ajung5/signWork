@@ -36,10 +36,12 @@
                         : 'Preview dokumen sumber');
         @endphp
         @if (config('signwork.provider') === 'mock')
-            <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Provider: MOCK — simulasi, bukan TTE BSrE yang sah.
+            <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Provider: MOCK — simulasi, bukan TTE BSrE yang
+                sah.
                 QR membandingkan hash file; bukan validasi sertifikat elektronik.</p>
         @else
-            <p class="rounded-lg bg-sky-50 p-3 text-sm text-sky-900">Provider: eSign Client BSrE development. Dokumen final
+            <p class="rounded-lg bg-sky-50 p-3 text-sm text-sky-900">Provider: eSign Client BSrE development. Dokumen
+                final
                 menampilkan spesimen hitam setelah proses TTE BSrE berhasil.</p>
         @endif
         @if (!$document->isDraft() || !$cycle->positions_confirmed_at)
@@ -93,7 +95,7 @@
                                             'selected_pages' => 'Halaman ' .
                                                 implode(', ', array_map('intval', $step->specimen_pages ?? [])),
                                             'selected_page' => 'Halaman ' . (int) ($step->page ?? 0),
-                                            default => 'Belum ditentukan'
+                                            default => 'Belum ditentukan',
                                         };
                                     @endphp
                                     <div
@@ -135,14 +137,16 @@
                 @csrf <input type="hidden" name="cycle_token" value="{{ $cycle->public_id }}">
                 @if (config('signwork.provider') === 'mock')
                     <div class="rounded-lg bg-amber-50 p-3 text-sm">Gunakan passphrase demo <code
-                            class="font-semibold">{{ config('signwork.mock_passphrase') }}</code>. Jangan masukkan passphrase
+                            class="font-semibold">{{ config('signwork.mock_passphrase') }}</code>. Jangan masukkan
+                        passphrase
                         BSrE asli.</div>
                     <label class="block text-sm font-medium" for="sign-passphrase">Passphrase simulasi</label>
                 @else
                     <div class="rounded-lg bg-sky-50 p-3 text-sm text-sky-900">Mode eSign Client BSrE development.
                         Passphrase hanya dikirim ke BSrE saat proses tanda tangan dan tidak disimpan.</div>
-                    <p class="text-sm">NIK signer: <span class="font-semibold">{{ auth()->user()->nik ?: 'Belum diisi' }}</span></p>
-                    @if (! auth()->user()->nik)
+                    <p class="text-sm">NIK signer: <span
+                            class="font-semibold">{{ auth()->user()->nik ?: 'Belum diisi' }}</span></p>
+                    @if (!auth()->user()->nik)
                         <p class="text-sm text-red-700">NIK profil signer belum diisi. Isi NIK sebelum menggunakan BSrE.</p>
                     @endif
                     <label class="block text-sm font-medium" for="sign-passphrase">Passphrase BSrE</label>
@@ -153,7 +157,8 @@
                     tidak dilanjutkan. Nilainya tidak disimpan atau ditampilkan kembali.</p>
                 @if (config('signwork.provider') === 'mock')
                     <label class="flex gap-2 text-sm"><input type="checkbox" name="mock_acknowledged" value="1"
-                            required @checked(old('mock_acknowledged'))>Saya memahami bahwa aksi ini hanya simulasi signing dan tidak menggunakan sertifikat
+                            required @checked(old('mock_acknowledged'))>Saya memahami bahwa aksi ini hanya simulasi signing dan
+                        tidak menggunakan sertifikat
                         BSrE.</label>
                 @endif
                 @error('mock_acknowledged')
