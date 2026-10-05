@@ -6,6 +6,8 @@ use App\Models\Document;
 use App\Models\User;
 use App\Models\WorkflowMasterEntry;
 use App\Services\DocumentWorkflow;
+use App\Services\SigningProvider;
+use App\Services\SigningResult;
 use App\Services\SpecimenTemplate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -253,12 +255,28 @@ test('signature failure rolls back its step and can be retried', function () {
     expect($document->currentCycle()->signatures()->first()->status)->toBe('signed');
 });
 
-test('real provider configuration cannot silently execute mock signing', function () {
+test('BSrE provider configuration signs through the configured provider', function () {
     [$document, $owner, $approvers, $signers] = pdfWorkflowFixture();
     submitPdfWorkflow($document, $owner);
     approvePdfWorkflow($document, $approvers);
+    $signers[0]->update(['nik' => '3200000000000001']);
     config(['signwork.provider' => 'bsre']);
-    $this->actingAs($signers[0])->post(route('documents.sign', $document), ['cycle_token' => $document->currentCycle()->public_id, 'mock_acknowledged' => 1, 'passphrase' => 'MOCK-SIGNWORK-2026'])->assertSessionHasErrors('provider');
+    $this->mock(SigningProvider::class)
+        ->shouldReceive('sign')
+        ->once()
+        ->andReturnUsing(function (string $input, string $output): SigningResult {
+            Storage::disk('local')->copy($input, $output);
+
+            return new SigningResult('bsre-test-transaction');
+        });
+
+    $this->actingAs($signers[0])->post(route('documents.sign', $document), [
+        'cycle_token' => $document->currentCycle()->public_id,
+        'passphrase' => 'BSRE-PASSPHRASE',
+    ])->assertSessionHasNoErrors();
+
+    expect($document->currentCycle()->signatures()->first()->fresh()->provider_transaction_id)
+        ->toBe('bsre-test-transaction');
     expect($document->currentCycle()->final_sha256)->toBeNull();
 });
 

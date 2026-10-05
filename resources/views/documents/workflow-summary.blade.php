@@ -133,22 +133,38 @@
             <form action="{{ route('documents.sign', $document) }}" method="POST"
                 class="space-y-3 rounded-lg border border-amber-200 p-4" data-single-submit>
                 @csrf <input type="hidden" name="cycle_token" value="{{ $cycle->public_id }}">
-                <div class="rounded-lg bg-amber-50 p-3 text-sm">Gunakan passphrase demo <code
-                        class="font-semibold">{{ config('signwork.mock_passphrase') }}</code>. Jangan masukkan passphrase
-                    BSrE asli.</div>
-                <label class="block text-sm font-medium" for="sign-passphrase">Passphrase simulasi</label>
+                @if (config('signwork.provider') === 'mock')
+                    <div class="rounded-lg bg-amber-50 p-3 text-sm">Gunakan passphrase demo <code
+                            class="font-semibold">{{ config('signwork.mock_passphrase') }}</code>. Jangan masukkan passphrase
+                        BSrE asli.</div>
+                    <label class="block text-sm font-medium" for="sign-passphrase">Passphrase simulasi</label>
+                @else
+                    <div class="rounded-lg bg-sky-50 p-3 text-sm text-sky-900">Mode eSign Client BSrE development.
+                        Passphrase hanya dikirim ke BSrE saat proses tanda tangan dan tidak disimpan.</div>
+                    <p class="text-sm">NIK signer: <span class="font-semibold">{{ auth()->user()->nik ?: 'Belum diisi' }}</span></p>
+                    @if (! auth()->user()->nik)
+                        <p class="text-sm text-red-700">NIK profil signer belum diisi. Isi NIK sebelum menggunakan BSrE.</p>
+                    @endif
+                    <label class="block text-sm font-medium" for="sign-passphrase">Passphrase BSrE</label>
+                @endif
                 <input id="sign-passphrase" name="passphrase" type="password" required maxlength="200" autocomplete="off"
                     class="w-full rounded-lg border border-slate-300 p-3" aria-describedby="passphrase-help">
                 <p id="passphrase-help" class="text-xs text-slate-600">Diverifikasi saat tombol ditekan. Jika salah, proses
                     tidak dilanjutkan. Nilainya tidak disimpan atau ditampilkan kembali.</p>
-                <label class="flex gap-2 text-sm"><input type="checkbox" name="mock_acknowledged" value="1"
-                        required @checked(old('mock_acknowledged'))>Saya memahami bahwa aksi ini hanya simulasi signing dan tidak menggunakan sertifikat
-                    BSrE.</label>
+                @if (config('signwork.provider') === 'mock')
+                    <label class="flex gap-2 text-sm"><input type="checkbox" name="mock_acknowledged" value="1"
+                            required @checked(old('mock_acknowledged'))>Saya memahami bahwa aksi ini hanya simulasi signing dan tidak menggunakan sertifikat
+                        BSrE.</label>
+                @endif
                 @error('mock_acknowledged')
                     <p class="text-sm text-red-700">{{ $message }}</p>
                 @enderror
-                <button class="rounded-lg bg-violet-700 px-4 py-2 font-semibold text-white">Jalankan simulasi tanda
-                    tangan</button>
+                @error('provider')
+                    <p class="text-sm text-red-700">{{ $message }}</p>
+                @enderror
+                <button class="rounded-lg bg-violet-700 px-4 py-2 font-semibold text-white">
+                    {{ config('signwork.provider') === 'mock' ? 'Jalankan simulasi tanda tangan' : 'Tanda Tangani dengan BSrE' }}
+                </button>
             </form>
         @endcan
         @if ($cycle->qr_mode === 'legacy_all')

@@ -262,28 +262,39 @@ class DocumentPdfController extends Controller
     public function sign(Request $request, Document $document, DocumentWorkflow $workflow): RedirectResponse
     {
         Gate::authorize('sign', $document);
-        $data = $request->validate([
+        $provider = (string) config('signwork.provider');
+        $rules = [
             'cycle_token' => ['required', 'uuid'],
-            'mock_acknowledged' => ['accepted'],
             'passphrase' => ['required', 'string', 'max:200'],
-        ], [
-            'mock_acknowledged.accepted' => 'Centang konfirmasi simulasi sebelum menjalankan tanda tangan.',
-        ]);
-        if (config('signwork.provider') !== 'mock') {
-            throw ValidationException::withMessages(['provider' => 'Provider BSrE belum tersedia.']);
+        ];
+        $messages = [];
+        if ($provider === 'mock') {
+            $rules['mock_acknowledged'] = ['accepted'];
+            $messages['mock_acknowledged.accepted'] = 'Centang konfirmasi simulasi sebelum menjalankan tanda tangan.';
         }
-        if (! hash_equals((string) config('signwork.mock_passphrase'), $data['passphrase'])) {
+        $data = $request->validate([
+            ...$rules,
+        ], $messages);
+        if (! in_array($provider, ['mock', 'bsre'], true)) {
+            throw ValidationException::withMessages(['provider' => 'Provider signing tidak dikenali.']);
+        }
+        if ($provider === 'bsre' && blank($request->user()->nik)) {
+            throw ValidationException::withMessages(['provider' => 'NIK profil signer belum diisi. Isi NIK sebelum menggunakan BSrE.']);
+        }
+        if ($provider === 'mock' && ! hash_equals((string) config('signwork.mock_passphrase'), $data['passphrase'])) {
             return back()
                 ->withErrors([
                     'passphrase' => 'Passphrase simulasi salah. Dokumen belum ditandatangani.',
                 ])
                 ->withInput($request->except('passphrase'));
         }
-        $workflow->sign($document, $request->user(), $data['cycle_token']);
+        $workflow->sign($document, $request->user(), $data['cycle_token'], $data['passphrase']);
 
         return to_route('documents.show', $document)->with(
             'success',
-            'Passphrase simulasi berhasil diverifikasi. Tahap tanda tangan berhasil. Ini bukan TTE BSrE.'
+            $provider === 'mock'
+                ? 'Passphrase simulasi berhasil diverifikasi. Tahap tanda tangan berhasil. Ini bukan TTE BSrE.'
+                : 'Passphrase BSrE berhasil diverifikasi. Dokumen berhasil ditandatangani melalui eSign Client BSrE.'
         );
     }
 

@@ -65,7 +65,7 @@ test('recipient receives final document only after owner or last signer sends it
     $this->actingAs($owner)->post(route('documents.send', $document), $payload)->assertForbidden();
     $workflow = app(DocumentWorkflow::class);
     foreach ($signers as $signer) {
-        $workflow->sign($document, $signer, $cycle->public_id);
+        $workflow->sign($document, $signer, $cycle->public_id, 'MOCK-SIGNWORK-2026');
     }
     $this->actingAs($recipient)->get(route('incoming-documents.index'))->assertDontSee($document->title);
     $this->actingAs($signers[0])->post(route('documents.send', $document), $payload)->assertForbidden();
