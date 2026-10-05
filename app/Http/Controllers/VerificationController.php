@@ -20,19 +20,58 @@ class VerificationController extends Controller
         return response()->view('documents.validation');
     }
 
-    public function lookup(Request $request): RedirectResponse
+    public function lookup(Request $request): Response|RedirectResponse
     {
+        if ($request->hasFile('document')) {
+            $data = $request->validate([
+                'document' => ['required', 'file', 'mimes:pdf', 'max:20480'],
+            ]);
+
+            $file = $data['document'];
+            $storedPath = $file->storeAs('validation', Str::uuid().'.pdf');
+
+            try {
+                $inspection = $this->pdf->run('certificate_info', $storedPath);
+                $fileSize = Storage::disk('local')->size($storedPath);
+                $fileHash = hash_file(
+                    'sha256',
+                    Storage::disk('local')->path($storedPath)
+                );
+            } catch (ValidationException $exception) {
+                return back()->withErrors([
+                    'document' => data_get(
+                        $exception->errors(),
+                        'pdf.0',
+                        'File PDF tidak dapat diperiksa.'
+                    ),
+                ])->withInput();
+            } finally {
+                Storage::disk('local')->delete($storedPath);
+            }
+
+            return response()->view('documents.validation', [
+                'inspection' => $inspection,
+                'fileName' => $file->getClientOriginalName(),
+                'fileSize' => $fileSize,
+                'fileHash' => $fileHash,
+            ]);
+        }
+
+        // Kompatibilitas untuk tautan validasi lama.
         $data = $request->validate([
             'reference' => ['required', 'string', 'max:500'],
         ]);
+
         $reference = trim($data['reference']);
+
         if (filter_var($reference, FILTER_VALIDATE_URL)) {
             $reference = trim((string) parse_url($reference, PHP_URL_PATH), '/');
             $reference = Str::afterLast($reference, '/');
         }
+
         if (! Str::isUuid($reference)) {
             throw ValidationException::withMessages([
-                'reference' => 'Masukkan tautan QR atau ID validasi dokumen yang sah.',
+                'reference' => 'Masukkan ID validasi dokumen yang sah.',
             ]);
         }
 

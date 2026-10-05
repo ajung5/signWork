@@ -340,6 +340,94 @@ def _certificate_details(pem):
 
 
 def certificate_info(doc):
+    """Detect embedded PDF signatures and extract certificate metadata when available."""
+    signatures = []
+
+    for xref in range(1, doc.xref_length()):
+        obj = doc.xref_object(xref, compressed=False)
+
+        if '/ByteRange' not in obj or '/SubFilter' not in obj:
+            continue
+
+        signature = {
+            'fingerprint_sha1': None,
+            'issuer_dn': None,
+            'subject_dn': None,
+            'not_before': None,
+            'not_after': None,
+            'serial': None,
+            'certificate_available': False,
+            'xref': xref,
+        }
+
+        contents = re.search(
+            r'/Contents\s*<([0-9A-Fa-f\s]+)>',
+            obj,
+            re.DOTALL
+        )
+
+        # Signature tetap dianggap terdeteksi meskipun format
+        # Contents tidak dapat dibaca.
+        if not contents:
+            signatures.append(signature)
+            continue
+
+        try:
+            cms = bytes.fromhex(
+                re.sub(r'\s+', '', contents.group(1))
+            ).rstrip(b'\x00')
+        except ValueError:
+            signatures.append(signature)
+            continue
+
+        pem_bundle = _openssl([
+            'pkcs7',
+            '-inform',
+            'DER',
+            '-print_certs',
+            '-outform',
+            'PEM',
+        ], cms)
+
+        # TTE terdeteksi, tetapi metadata sertifikat belum dapat dibaca.
+        if not pem_bundle:
+            signatures.append(signature)
+            continue
+
+        certificates = re.findall(
+            rb'-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----',
+            pem_bundle,
+            re.DOTALL,
+        )
+
+        parsed = [
+            detail
+            for pem in certificates
+            if (detail := _certificate_details(pem))
+        ]
+
+        if not parsed:
+            signatures.append(signature)
+            continue
+
+        leaf = next(
+            (
+                detail
+                for detail in reversed(parsed)
+                if not detail['is_ca']
+            ),
+            parsed[-1],
+        )
+
+        leaf.pop('is_ca', None)
+        leaf['certificate_available'] = True
+        leaf['xref'] = xref
+
+        signatures.append(leaf)
+
+    return {
+        'signatures': signatures,
+    }
     """Extract leaf certificate metadata from embedded PDF CMS signatures."""
     signatures = []
     for xref in range(1, doc.xref_length()):
