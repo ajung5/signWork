@@ -113,6 +113,12 @@ test('full workflow runs two approvals and two mock signatures and verifies the 
     expect($steps[0]->input_sha256)->toBe($cycle->prepared_sha256);
     expect($cycle->original_sha256)->not->toBe($cycle->final_sha256);
     $this->get(route('verification.show', $token))->assertOk()->assertSee('BUKAN TTE SAH')->assertDontSee($owner->email);
+    $this->get(route('verification.show', $token))
+        ->assertSee('Nama dokumen')
+        ->assertSee('Jumlah halaman')
+        ->assertSee('Ukuran file')
+        ->assertSee('Signer information')
+        ->assertSee('View Certificate');
     $this->actingAs($owner)->get(route('validation.index'))->assertOk()->assertSee('Validasi Dokumen');
     $this->actingAs($owner)->post(route('validation.lookup'), ['reference' => route('verification.show', $token)])
         ->assertRedirect(route('verification.show', $token));
