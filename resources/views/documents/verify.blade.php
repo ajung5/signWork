@@ -66,6 +66,14 @@
                     Halaman ini hanya menunjukkan catatan simulasi dan kesesuaian hash file.
                 @endif
             </p>
+            @if ($signedCount > 0)
+                <div class="mt-4 flex justify-center">
+                    <button type="button" data-open-signer="signer-detail-{{ $cycle->signatures->first()->id }}"
+                        class="rounded-lg border border-emerald-700 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
+                        Lihat detail tanda tangan
+                    </button>
+                </div>
+            @endif
         </section>
 
         <details class="group rounded-2xl bg-white shadow-sm" open>
@@ -138,7 +146,9 @@
                         'pangkat' => $signer?->pangkat,
                         'golongan' => $signer?->golongan,
                     ];
+                $certificate = $certificateByStep[$step->id] ?? [];
                 $certificateReady = $isBsre && $step->status === 'signed';
+                $certificateEmbedded = $certificateReady && filled($certificate['subject_dn'] ?? null);
             @endphp
             <dialog id="signer-detail-{{ $step->id }}"
                 class="w-[calc(100%-2rem)] max-w-xl rounded-2xl border-0 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/50">
@@ -182,10 +192,10 @@
                     <div class="rounded-xl border {{ $certificateReady ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50' }} p-4">
                         <p class="text-xs font-semibold uppercase tracking-wide {{ $certificateReady ? 'text-emerald-700' : 'text-amber-700' }}">Certificate status</p>
                         <p class="mt-1 font-semibold {{ $certificateReady ? 'text-emerald-900' : 'text-amber-900' }}">
-                            {{ $certificateReady ? 'BSrE signing berhasil diterima' : 'Belum tersedia' }}
+                            {{ $certificateEmbedded ? 'Sertifikat BSrE terdeteksi pada PDF final' : ($certificateReady ? 'BSrE signing berhasil diterima' : 'Belum tersedia') }}
                         </p>
                         <p class="mt-1 text-sm {{ $certificateReady ? 'text-emerald-800' : 'text-amber-800' }}">
-                            {{ $certificateReady ? 'Dokumen telah diproses melalui eSign Client BSrE.' : 'Detail sertifikat tersedia setelah penandatangan berhasil.' }}
+                            {{ $certificateEmbedded ? 'Metadata sertifikat dapat dilihat melalui tombol View Certificate.' : ($certificateReady ? 'Dokumen telah diproses melalui eSign Client BSrE.' : 'Detail sertifikat tersedia setelah penandatangan berhasil.') }}
                         </p>
                     </div>
 
@@ -212,14 +222,17 @@
                 </div>
                 <div class="space-y-4 p-5 sm:p-6">
                     <dl class="divide-y divide-slate-100 rounded-xl border border-slate-200 text-sm">
-                        <div class="flex items-start justify-between gap-4 p-4"><dt class="text-slate-500">Certificate status</dt><dd class="text-right font-semibold {{ $certificateReady ? 'text-emerald-700' : 'text-amber-700' }}">{{ $certificateReady ? 'Validasi signing BSrE berhasil' : 'Belum tersedia' }}</dd></div>
+                        <div class="flex items-start justify-between gap-4 p-4"><dt class="text-slate-500">Certificate status</dt><dd class="text-right font-semibold {{ $certificateReady ? 'text-emerald-700' : 'text-amber-700' }}">{{ $certificateEmbedded ? 'Sertifikat tertanam' : ($certificateReady ? 'Signing BSrE berhasil' : 'Belum tersedia') }}</dd></div>
                         <div class="flex items-start justify-between gap-4 p-4"><dt class="text-slate-500">Provider</dt><dd class="text-right font-semibold">{{ $isBsre ? 'eSign Client BSrE' : 'Mock (simulasi)' }}</dd></div>
-                        <div class="flex items-start justify-between gap-4 p-4"><dt class="text-slate-500">Certificate authority</dt><dd class="text-right font-semibold">{{ $isBsre ? 'BSrE-BSSN' : 'Tidak ada' }}</dd></div>
+                        <div class="flex items-start justify-between gap-4 p-4"><dt class="text-slate-500">SHA-1 fingerprint</dt><dd class="max-w-[65%] break-all text-right font-mono text-xs">{{ $certificate['fingerprint_sha1'] ?? 'Belum tersedia' }}</dd></div>
+                        <div class="flex items-start justify-between gap-4 p-4"><dt class="text-slate-500">Issuer DN</dt><dd class="max-w-[65%] break-all text-right text-xs">{{ $certificate['issuer_dn'] ?? 'Belum tersedia' }}</dd></div>
+                        <div class="flex items-start justify-between gap-4 p-4"><dt class="text-slate-500">Subject DN</dt><dd class="max-w-[65%] break-all text-right text-xs">{{ $certificate['subject_dn'] ?? 'Belum tersedia' }}</dd></div>
+                        <div class="flex items-start justify-between gap-4 p-4"><dt class="text-slate-500">Validity</dt><dd class="max-w-[65%] text-right text-xs">{{ $certificate['not_before'] ?? '—' }}<br>{{ $certificate['not_after'] ?? '—' }}</dd></div>
                         <div class="flex items-start justify-between gap-4 p-4"><dt class="text-slate-500">Key usage</dt><dd class="text-right font-semibold">Digital Signature<br>Non-Repudiation</dd></div>
                         <div class="flex items-start justify-between gap-4 p-4"><dt class="text-slate-500">Transaction ID</dt><dd class="max-w-[60%] break-all text-right font-mono text-xs">{{ $step->provider_transaction_id ?? '—' }}</dd></div>
                     </dl>
                     <p class="rounded-lg bg-slate-50 p-3 text-xs leading-5 text-slate-600">
-                        Nomor sertifikat, masa berlaku, dan certificate chain hanya dapat ditampilkan apabila dikembalikan oleh endpoint BSrE. SignWork tidak menyimpan private key atau passphrase signer.
+                        Data fingerprint dan DN dibaca dari sertifikat yang tertanam pada PDF final. SignWork tidak menyimpan private key atau passphrase signer.
                     </p>
                     <div class="flex justify-end">
                         <button type="button" data-close-dialog class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900">Tutup</button>

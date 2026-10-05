@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DocumentCycle;
+use App\Services\PdfEngine;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -12,6 +13,8 @@ use Illuminate\Validation\ValidationException;
 
 class VerificationController extends Controller
 {
+    public function __construct(private readonly PdfEngine $pdf) {}
+
     public function index(): Response
     {
         return response()->view('documents.validation');
@@ -67,7 +70,21 @@ class VerificationController extends Controller
             ? Storage::disk('local')->size($filePath)
             : null;
         $pageCount = count(data_get($cycle->pdf_metadata, 'pages', []));
-        $viewData = compact('cycle', 'fileSize', 'pageCount');
+        $certificateMetadata = [];
+        if ($filePath && $cycle->status === 'signed' && config('signwork.provider') === 'bsre') {
+            try {
+                $certificateMetadata = $this->pdf->run('certificate_info', $filePath)['signatures'] ?? [];
+            } catch (ValidationException) {
+                // Certificate details are supplemental; validation must remain available
+                // even when the server cannot parse an embedded CMS certificate.
+                $certificateMetadata = [];
+            }
+        }
+        $certificateByStep = [];
+        foreach ($cycle->signatures as $index => $step) {
+            $certificateByStep[$step->id] = $certificateMetadata[$index] ?? [];
+        }
+        $viewData = compact('cycle', 'fileSize', 'pageCount', 'certificateByStep');
         if ($match !== null) {
             $viewData['match'] = $match;
         }

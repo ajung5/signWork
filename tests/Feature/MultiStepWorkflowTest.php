@@ -118,7 +118,12 @@ test('full workflow runs two approvals and two mock signatures and verifies the 
         ->assertSee('Jumlah halaman')
         ->assertSee('Ukuran file')
         ->assertSee('Signer information')
-        ->assertSee('View Certificate');
+        ->assertSee('View Certificate')
+        ->assertSee('SHA-1 fingerprint')
+        ->assertSee('Issuer DN')
+        ->assertSee('Subject DN')
+        ->assertSee('Validity')
+        ->assertSee('Lihat detail tanda tangan');
     $this->actingAs($owner)->get(route('validation.index'))->assertOk()->assertSee('Validasi Dokumen');
     $this->actingAs($owner)->post(route('validation.lookup'), ['reference' => route('verification.show', $token)])
         ->assertRedirect(route('verification.show', $token));

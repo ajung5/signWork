@@ -309,6 +309,10 @@ class PdfWorkerTest(unittest.TestCase):
                 pixmap.samples[0::3], pixmap.samples[1::3], pixmap.samples[2::3])))
             self.assertNotIn('SIMULASI TTE - BUKAN TTE SAH', doc[0].get_text())
 
+    def test_certificate_info_returns_empty_for_unsigned_pdf(self):
+        result = worker.run({'action': 'certificate_info', 'input': str(self.source)})
+        self.assertEqual(result, {'signatures': []})
+
     def test_new_qr_sizes_render_at_exact_dimensions_and_legacy_size_is_retained(self):
         choices = worker.specimens.options([{}], 'https://example.test/verify/demo')[0]
         self.assertEqual(set(choices), {'framed', 'qr_2cm', 'qr_3cm'})
