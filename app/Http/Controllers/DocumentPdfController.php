@@ -90,6 +90,7 @@ class DocumentPdfController extends Controller
                 'steps' => $cycle->signatures->toArray(),
                 'verification_url' => $verificationUrl,
                 'specimen_version' => (int) $cycle->specimen_version,
+                'provider' => (string) config('signwork.provider', 'mock'),
             ]);
         } catch (\Throwable $error) {
             Storage::disk('local')->delete($path);

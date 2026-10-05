@@ -30,13 +30,18 @@
             $previewVersion = $cycle->status === 'signed' ? 'final' : ($cycle->current_path ? 'current' : 'original');
             $previewLabel =
                 $previewVersion === 'final'
-                    ? 'Preview PDF final'
+                    ? 'Lihat dokumen final'
                     : ($previewVersion === 'current'
                         ? 'Preview PDF tahap berjalan'
                         : 'Preview dokumen sumber');
         @endphp
-        <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Provider: MOCK — simulasi, bukan TTE BSrE yang sah.
-            QR membandingkan hash file; bukan validasi sertifikat elektronik.</p>
+        @if (config('signwork.provider') === 'mock')
+            <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Provider: MOCK — simulasi, bukan TTE BSrE yang sah.
+                QR membandingkan hash file; bukan validasi sertifikat elektronik.</p>
+        @else
+            <p class="rounded-lg bg-sky-50 p-3 text-sm text-sky-900">Provider: eSign Client BSrE development. Dokumen final
+                menampilkan spesimen hitam setelah proses TTE BSrE berhasil.</p>
+        @endif
         @if (!$document->isDraft() || !$cycle->positions_confirmed_at)
             <div class="rounded-xl border border-blue-200 bg-blue-50 p-4">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -48,11 +53,6 @@
                     <div class="flex shrink-0 flex-wrap items-center gap-2 sm:flex-nowrap">
                         <a href="{{ route('documents.pdf.viewer', [$document, 'version' => $previewVersion]) }}"
                             class="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">{{ $previewLabel }}</a>
-                        @if ($document->isSigned())
-                            <a href="{{ route('verification.show', $cycle->public_id) }}"
-                                target="_blank" rel="noopener noreferrer"
-                                class="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-violet-300 bg-violet-700 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-800">Buka verifikasi PDF</a>
-                        @endif
                     </div>
                 </div>
             </div>

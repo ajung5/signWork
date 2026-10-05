@@ -4,10 +4,37 @@ namespace App\Http\Controllers;
 
 use App\Models\DocumentCycle;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class VerificationController extends Controller
 {
+    public function index(): Response
+    {
+        return response()->view('documents.validation');
+    }
+
+    public function lookup(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'reference' => ['required', 'string', 'max:500'],
+        ]);
+        $reference = trim($data['reference']);
+        if (filter_var($reference, FILTER_VALIDATE_URL)) {
+            $reference = trim((string) parse_url($reference, PHP_URL_PATH), '/');
+            $reference = Str::afterLast($reference, '/');
+        }
+        if (! Str::isUuid($reference)) {
+            throw ValidationException::withMessages([
+                'reference' => 'Masukkan tautan QR atau ID validasi dokumen yang sah.',
+            ]);
+        }
+
+        return to_route('verification.show', $reference);
+    }
+
     public function show(string $publicId): Response
     {
         $cycle = DocumentCycle::query()->where('public_id', $publicId)->whereNotNull('submitted_at')->with('signatures')->firstOrFail();

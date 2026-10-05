@@ -77,6 +77,14 @@
                     <a href="{{ route('admin.activity.index') }}"
                         class="block rounded-lg px-3 py-2.5 text-sm font-medium {{ request()->routeIs('admin.activity.*') ? 'bg-blue-50 text-blue-800' : 'text-slate-600 hover:bg-slate-100' }}">Log
                         Aktivitas</a>
+
+                    <a href="{{ route('validation.index') }}" @class([
+                        'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
+                        'bg-emerald-50 text-emerald-800' => request()->routeIs('validation.*'),
+                        'text-slate-600 hover:bg-slate-100 hover:text-slate-900' => !request()->routeIs('validation.*')
+                    ])>
+                        Validasi
+                    </a>
                 @else
                     <a href="{{ route('documents.index') }}" @class([
                         'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
@@ -96,6 +104,14 @@
                         )
                     ])>
                         Dokumen Masuk
+                    </a>
+
+                    <a href="{{ route('validation.index') }}" @class([
+                        'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
+                        'bg-emerald-50 text-emerald-800' => request()->routeIs('validation.*'),
+                        'text-slate-600 hover:bg-slate-100 hover:text-slate-900' => !request()->routeIs('validation.*')
+                    ])>
+                        Validasi
                     </a>
 
                     <a href="{{ route('approvals.index') }}" @class([

@@ -253,10 +253,11 @@ def prepare(doc, payload):
     steps = payload['steps']
     validate_positions(doc, steps)
     replace_placeholders(doc, steps)
-    if payload.get('specimen_version') == 1:
+    if payload.get('specimen_version') == 1 and payload.get('provider', 'mock') == 'mock':
         specimens.footer(doc)
     draw_specimens(doc, steps, payload['verification_url'], color='red')
-    doc.set_metadata({**doc.metadata, 'subject': 'SignWork MOCK - bukan tanda tangan elektronik kriptografis'})
+    subject = 'SignWork MOCK - bukan tanda tangan elektronik kriptografis' if payload.get('provider', 'mock') == 'mock' else 'SignWork - dokumen ditandatangani melalui BSrE'
+    doc.set_metadata({**doc.metadata, 'subject': subject})
     doc.save(payload['output'], garbage=4, deflate=True)
     return {'ok': True}
 
@@ -289,6 +290,12 @@ def draw_signed_qr(doc, payload):
         page.insert_image(qr_rect, stream=buf.getvalue())
         page.insert_link({'kind': fitz.LINK_URI, 'from': qr_rect, 'uri': url})
 
+
+def prepare_signed_specimen(doc, payload):
+    draw_signed_qr(doc, payload)
+    doc.save(payload['output'], garbage=4, deflate=True)
+    return {'ok': True}
+
 def run(payload):
     action = payload['action']
     if action == 'specimens':
@@ -320,6 +327,8 @@ def run(payload):
             return {'ok': True}
         if action == 'prepare':
             return prepare(doc, payload)
+        if action == 'sign_specimen':
+            return prepare_signed_specimen(doc, payload)
         raise InvalidPdf('Operasi PDF tidak dikenali.')
 
 

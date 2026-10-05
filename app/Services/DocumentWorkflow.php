@@ -605,23 +605,32 @@ class DocumentWorkflow
                 $output = 'signwork/'.$locked->uuid.'/'.Str::uuid().'.pdf';
                 $outputs[] = $output;
                 $transaction = (string) Str::uuid();
+                $verificationUrl = rtrim((string) config('signwork.verification_base_url'), '/').
+                    route('verification.show', $cycle->public_id, false);
                 $context = [
                     'nik' => $actor->nik,
                     'passphrase' => $passphrase,
+                    'step' => $step->toArray(),
+                    'verification_url' => $verificationUrl,
                 ];
-                if ($cycle->qr_mode === 'per_signer') {
-                    $context += [
+                $providerInput = $cycle->current_path;
+                $providerInputSha256 = $cycle->current_sha256;
+                if (config('signwork.provider') === 'bsre') {
+                    $providerInput = 'signwork/'.$locked->uuid.'/'.Str::uuid().'.pdf';
+                    $outputs[] = $providerInput;
+                    $this->pdf->run('sign_specimen', $cycle->current_path, [
+                        'output' => $this->pdf->path($providerInput),
                         'step' => $step->toArray(),
-                        'verification_url' => rtrim((string) config('signwork.verification_base_url'), '/').
-                            route('verification.show', $cycle->public_id, false),
-                    ];
+                        'verification_url' => $verificationUrl,
+                    ]);
+                    $providerInputSha256 = $this->pdf->hash($providerInput);
                 }
-                $result = $this->provider->sign($cycle->current_path, $output, $transaction, $step->name_snapshot, $context);
+                $result = $this->provider->sign($providerInput, $output, $transaction, $step->name_snapshot, $context);
                 $hash = $this->pdf->hash($output);
                 $step->update([
                     'status' => 'signed',
                     'acted_at' => now(),
-                    'input_sha256' => $cycle->current_sha256,
+                    'input_sha256' => $providerInputSha256,
                     'output_sha256' => $hash,
                     'output_path' => $output,
                     'provider_transaction_id' => $result->providerTransactionId,
@@ -669,6 +678,7 @@ class DocumentWorkflow
                 'steps' => $cycle->signatures()->get()->toArray(),
                 'verification_url' => $verificationUrl,
                 'specimen_version' => (int) $cycle->specimen_version,
+                'provider' => (string) config('signwork.provider', 'mock'),
             ]);
             $hash = $this->pdf->hash($prepared);
             $cycle->update([

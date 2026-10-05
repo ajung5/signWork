@@ -104,15 +104,18 @@ test('full workflow runs two approvals and two mock signatures and verifies the 
     expect($document->fresh()->status)->toBe(DocumentStatus::Signed);
     $this->actingAs($owner)->get(route('documents.show', $document))
         ->assertOk()
-        ->assertSee('Preview PDF final')
-        ->assertSee('Buka verifikasi PDF')
-        ->assertSeeInOrder(['Preview PDF final', 'Buka verifikasi PDF']);
+        ->assertSee('Lihat dokumen final')
+        ->assertDontSee('Buka verifikasi PDF')
+        ->assertSee('Validasi');
     expect(hash_file('sha256', Storage::disk('local')->path($cycle->current_path)))->toBe($cycle->final_sha256);
     $steps = $cycle->signatures()->get();
     expect($steps[1]->input_sha256)->toBe($steps[0]->output_sha256);
     expect($steps[0]->input_sha256)->toBe($cycle->prepared_sha256);
     expect($cycle->original_sha256)->not->toBe($cycle->final_sha256);
     $this->get(route('verification.show', $token))->assertOk()->assertSee('BUKAN TTE SAH')->assertDontSee($owner->email);
+    $this->actingAs($owner)->get(route('validation.index'))->assertOk()->assertSee('Validasi Dokumen');
+    $this->actingAs($owner)->post(route('validation.lookup'), ['reference' => route('verification.show', $token)])
+        ->assertRedirect(route('verification.show', $token));
     $this->post(route('verification.compare', $token), ['sha256' => $cycle->final_sha256])->assertSee('Hash cocok');
     $this->post(route('verification.compare', $token), ['sha256' => str_repeat('0', 64)])->assertSee('Hash tidak cocok');
     $this->get(route('documents.pdf.download', [$document, 'version' => 'final']))->assertDownload('scanned_sign.pdf');
