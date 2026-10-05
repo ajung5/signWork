@@ -308,7 +308,7 @@ class DocumentPdfController extends Controller
 
         $baseName = Str::ascii($baseName);
         $baseName = preg_replace('/[^A-Za-z0-9._ -]+/', '_', $baseName) ?: 'SignWork';
-        $baseName = trim($baseName, " ._-");
+        $baseName = trim($baseName, ' ._-');
 
         if ($baseName === '') {
             $baseName = 'SignWork';

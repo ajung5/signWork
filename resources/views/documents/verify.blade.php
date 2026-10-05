@@ -66,14 +66,6 @@
                     Halaman ini hanya menunjukkan catatan simulasi dan kesesuaian hash file.
                 @endif
             </p>
-            @if ($signedCount > 0)
-                <div class="mt-4 flex justify-center">
-                    <button type="button" data-open-signer="signer-detail-{{ $cycle->signatures->first()->id }}"
-                        class="rounded-lg border border-emerald-700 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
-                        Lihat detail tanda tangan
-                    </button>
-                </div>
-            @endif
         </section>
 
         <details class="group rounded-2xl bg-white shadow-sm" open>
@@ -120,16 +112,28 @@
                 @foreach ($cycle->signatures as $step)
                     <li class="rounded-xl border border-slate-200 p-4">
                         <div class="flex flex-wrap items-center justify-between gap-2">
-                            <button type="button" data-open-signer="signer-detail-{{ $step->id }}"
-                                class="text-left font-semibold text-emerald-700 underline decoration-emerald-300 underline-offset-4 hover:text-emerald-900">
+                            <p class="font-semibold text-slate-900">
                                 {{ $step->sequence }}. {{ $step->name_snapshot }}
-                            </button>
+                            </p>
+
                             <x-workflow-status :status="$step->status" />
                         </div>
-                        <p class="mt-2 text-xs text-slate-500">Klik nama penandatangan untuk melihat detail signer.</p>
+
+                        <p class="mt-2 text-xs text-slate-500">
+                            Penandatangan dokumen
+                        </p>
+
                         @if ($step->acted_at)
-                            <p class="mt-1 text-slate-500">{{ $step->acted_at->timezone('Asia/Jakarta')->format('d M Y H:i:s') }} WIB</p>
+                            <p class="mt-1 text-slate-500">
+                                {{ $step->acted_at->timezone('Asia/Jakarta')->format('d M Y H:i:s') }} WIB
+                            </p>
                         @endif
+
+                        <button type="button"
+                            data-open-signer="signer-detail-{{ $step->id }}"
+                            class="mt-4 rounded-lg border border-emerald-700 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
+                            Lihat detail tanda tangan
+                        </button>
                     </li>
                 @endforeach
             </ol>
