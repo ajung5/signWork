@@ -46,7 +46,7 @@
                             <path d="m5 12 4 4L19 6" stroke-linecap="round" stroke-linejoin="round" />
                         </svg>
                     </span>
-                    <span>{{ $isValid ? 'Keaslian dokumen terjaga' : 'Dokumen masih dalam proses signing' }}</span>
+                    <span>{{ $isValid ? 'Keaslian dokumen terjaga' : 'Dokumen masih diproses' }}</span>
                 </div>
                 <div class="mt-5 flex items-center gap-3 text-slate-700">
                     <span class="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">

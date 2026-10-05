@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class DocumentWorkflow
 {
@@ -585,7 +586,11 @@ class DocumentWorkflow
         }
     }
 
-    public function sign(Document $document, User $actor, string $token, string $passphrase): void
+    public function sign(
+        Document $document,
+        User $actor,
+        string $token,
+        ?string $passphrase = null): void
     {
         $outputs = [];
         try {
