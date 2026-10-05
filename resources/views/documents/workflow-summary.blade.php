@@ -50,7 +50,11 @@
                             class="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">{{ $previewLabel }}</a>
                         @if ($document->isSigned())
                             <a href="{{ route('verification.show', $cycle->public_id) }}"
-                                class="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-violet-300 bg-violet-700 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-800">Buka verifikasi PDF</a>
+    target="_blank"
+    rel="noopener noreferrer"
+    class="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-violet-300 bg-violet-700 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-800">
+    Buka verifikasi PDF
+</a>
                         @endif
                     </div>
                 </div>
