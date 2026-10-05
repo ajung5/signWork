@@ -113,7 +113,9 @@ test('full workflow runs two approvals and two mock signatures and verifies the 
     $this->get(route('verification.show', $token))->assertOk()->assertSee('BUKAN TTE SAH')->assertDontSee($owner->email);
     $this->post(route('verification.compare', $token), ['sha256' => $cycle->final_sha256])->assertSee('Hash cocok');
     $this->post(route('verification.compare', $token), ['sha256' => str_repeat('0', 64)])->assertSee('Hash tidak cocok');
-    $this->get(route('documents.pdf.download', [$document, 'version' => 'final']))->assertDownload('SignWork-MOCK-final.pdf');
+    $this->get(route('documents.pdf.download', [$document, 'version' => 'final']))->assertDownload('scanned_sign.pdf');
+    $this->get(route('documents.pdf.download', [$document, 'version' => 'final', 'inline' => 1]))
+        ->assertHeader('Content-Disposition', 'inline; filename="scanned_sign.pdf"');
 });
 
 test('rejection preserves evidence and revision requires approval from step one again', function () {
@@ -167,6 +169,72 @@ test('draft verification and unfinished final download are unavailable', functio
     submitPdfWorkflow($document, $owner);
     $this->get(route('verification.show', $token))->assertSee('Dokumen masih diproses')->assertDontSee('Bandingkan file Anda');
     $this->actingAs($owner)->get(route('documents.pdf.download', [$document, 'version' => 'final']))->assertStatus(409);
+});
+
+test('draft owner can upload a revised source document', function () {
+    [$document, $owner] = pdfWorkflowFixture();
+    $cycle = $document->currentCycle();
+    $oldSourcePath = $cycle->source_path;
+
+    $this->actingAs($owner)
+        ->get(route('documents.edit', $document))
+        ->assertOk()
+        ->assertSee('Upload Dokumen Revisi')
+        ->assertSee(route('documents.revision.upload', $document));
+
+    $this->actingAs($owner)
+        ->post(route('documents.revision.upload', $document), [
+            'pdf' => new UploadedFile(
+                base_path('tests/Fixtures/scanned.pdf'),
+                'revised-source.pdf',
+                'application/pdf',
+                null,
+                true
+            ),
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('documents.pdf.edit', $document));
+
+    $cycle->refresh();
+
+    expect($cycle->source_name)->toBe('revised-source.pdf');
+    expect($cycle->source_path)->not->toBe($oldSourcePath);
+    expect($cycle->positions_confirmed_at)->toBeNull();
+    Storage::disk('local')->assertExists($cycle->source_path);
+    Storage::disk('local')->assertExists($cycle->original_path);
+});
+
+test('non owner cannot upload a revised source document', function () {
+    [$document] = pdfWorkflowFixture();
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('documents.revision.upload', $document), [
+            'pdf' => new UploadedFile(
+                base_path('tests/Fixtures/scanned.pdf'),
+                'revised-source.pdf',
+                'application/pdf',
+                null,
+                true
+            ),
+        ])
+        ->assertForbidden();
+});
+
+test('revised source upload is unavailable after draft submission', function () {
+    [$document, $owner] = pdfWorkflowFixture();
+    submitPdfWorkflow($document, $owner);
+
+    $this->actingAs($owner)
+        ->post(route('documents.revision.upload', $document), [
+            'pdf' => new UploadedFile(
+                base_path('tests/Fixtures/scanned.pdf'),
+                'revised-source.pdf',
+                'application/pdf',
+                null,
+                true
+            ),
+        ])
+        ->assertForbidden();
 });
 
 test('signature failure rolls back its step and can be retried', function () {

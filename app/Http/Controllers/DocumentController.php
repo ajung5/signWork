@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\DocumentStatus;
 use App\Enums\WorkflowMasterType;
 use App\Http\Requests\StoreDocumentRequest;
+use App\Http\Requests\UploadDocumentRevisionRequest;
 use App\Http\Requests\UpdateDocumentRequest;
 use App\Models\Document;
 use App\Models\User;
@@ -122,6 +123,7 @@ class DocumentController extends Controller
 
         return view('documents.edit', [
             'document' => $document,
+            'cycle' => $document->currentCycle(),
             'destinationUsers' => $this->masterUsers(
                 $document->owner,
                 WorkflowMasterType::Destination,
@@ -130,6 +132,26 @@ class DocumentController extends Controller
             'approverUsers' => $this->masterUsers($document->owner, WorkflowMasterType::Approver, $document->approver),
             'signerUsers' => $this->masterUsers($document->owner, WorkflowMasterType::Signer, $document->signer),
         ]);
+    }
+
+    public function uploadRevision(
+        UploadDocumentRevisionRequest $request,
+        Document $document,
+        DocumentWorkflow $workflow
+    ): RedirectResponse {
+        Gate::authorize('update', $document);
+        abort_unless($document->isDraft(), 409, 'Dokumen revisi hanya dapat diunggah saat status masih Draft.');
+
+        $workflow->replaceDraftSource(
+            $document,
+            $request->user(),
+            $request->file('pdf')
+        );
+
+        return to_route('documents.pdf.edit', $document)->with(
+            'success',
+            'Dokumen revisi berhasil diunggah. Periksa dan konfirmasi ulang seluruh posisi spesimen sebelum mengajukan.'
+        );
     }
 
     public function update(

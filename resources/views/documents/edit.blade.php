@@ -34,6 +34,62 @@
             </div>
         @endif
 
+        @if ($document->isDraft() && $cycle)
+            <section class="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-5">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                    <div>
+                        <h2 class="text-sm font-semibold text-blue-950">
+                            Upload Dokumen Revisi
+                        </h2>
+
+                        <p class="mt-1 max-w-3xl text-sm leading-6 text-blue-900">
+                            Unggah PDF, DOC, atau DOCX jika isi dokumen sumber perlu diganti. Setelah upload berhasil,
+                            posisi spesimen akan dikosongkan dan harus diperiksa serta dikonfirmasi ulang.
+                        </p>
+                    </div>
+
+                    <form
+                        action="{{ route('documents.revision.upload', $document) }}"
+                        method="POST"
+                        enctype="multipart/form-data"
+                        class="flex w-full flex-col gap-3 sm:flex-row sm:items-end lg:w-auto"
+                    >
+                        @csrf
+
+                        <div class="min-w-0 sm:min-w-72">
+                            <label for="revision-pdf" class="block text-xs font-semibold text-blue-950">
+                                File dokumen revisi
+                            </label>
+
+                            <input
+                                id="revision-pdf"
+                                name="pdf"
+                                type="file"
+                                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                required
+                                class="mt-1 block w-full rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm text-slate-900"
+                            >
+
+                            @error('pdf')
+                                <p class="mt-1 text-sm text-red-700">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <button
+                            type="submit"
+                            class="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-blue-700 bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800"
+                        >
+                            Upload Dokumen Revisi
+                        </button>
+                    </form>
+                </div>
+
+                <p class="mt-3 text-xs text-blue-800">
+                    Maksimal 5 MB. Dokumen Word akan dikonversi menjadi PDF sebelum posisi spesimen diatur ulang.
+                </p>
+            </section>
+        @endif
+
         <form
             action="{{ route('documents.update', $document) }}"
             method="POST"

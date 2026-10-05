@@ -103,6 +103,10 @@ Route::middleware(['auth', RecordActivity::class])->group(function (): void {
         'documents.revise'
     );
 
+    Route::post('/documents/{document}/revision', [DocumentController::class, 'uploadRevision'])->name(
+        'documents.revision.upload'
+    );
+
     Route::post('/documents/{document}/signer', [DocumentWorkflowController::class, 'assignSigner'])->name(
         'documents.assign-signer'
     );
